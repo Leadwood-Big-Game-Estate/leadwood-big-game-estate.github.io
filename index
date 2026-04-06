@@ -1,1 +1,247 @@
-<!DOCTYPE html> <html> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> <title>Wildlife Tracker</title> <style> * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; } body { font-family: Arial, sans-serif; background: #f4f4f0; color: #222; height: 100vh; overflow: hidden; display: flex; flex-direction: column; } #app { display: flex; flex-direction: column; height: 100vh; } /* ---- SETUP ---- */ #setup-screen { flex: 1; overflow-y: auto; padding: 20px; } .setup-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; margin-bottom: 14px; } .setup-card h3 { font-size: 14px; font-weight: bold; color: #555; margin-bottom: 12px; } .upload-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: background 0.15s; } .upload-zone:hover { background: #f9f9f9; } .upload-zone.has-file { border-color: #1D9E75; background: #eaf3de; color: #1D9E75; } .coord-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .coord-field label { display: block; font-size: 11px; color: #777; margin-bottom: 4px; } .coord-field input { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; background: #fafafa; color: #222; font-size: 13px; } .coord-field input:focus { outline: none; border-color: #1D9E75; } .btn-primary { width: 100%; padding: 13px; border: none; border-radius: 8px; background: #1D9E75; color: white; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 4px; } .btn-primary:disabled { background: #ccc; color: #888; cursor: default; } .setup-hint { font-size: 12px; color: #999; margin-bottom: 10px; line-height: 1.5; } /* ---- MAP ---- */ #map-screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; } #topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e0e0e0; flex-shrink: 0; } #topbar-left { display: flex; align-items: center; gap: 8px; } #topbar-title { font-size: 15px; font-weight: bold; } #gps-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; border: 1px solid; } #gps-badge.ok { color: #3B6D11; border-color: #639922; background: #eaf3de; } #gps-badge.searching{ color: #854F0B; border-color: #EF9F27; background: #faeeda; } #gps-badge.error { color: #A32D2D; border-color: #E24B4A; background: #fcebeb; } #topbar-right { display: flex; gap: 6px; } .icon-btn { padding: 5px 9px; border: 1px solid #ccc; border-radius: 8px; background: #f5f5f5; color: #555; font-size: 12px; cursor: pointer; } #map-area { flex: 1; position: relative; overflow: auto; background: #b8d4a0; } #map-canvas-wrap { position: relative; display: inline-block; min-width: 100%; min-height: 100%; } #map-canvas { display: block; } #svg-overlay { position: absolute; top: 0; left: 0; pointer-events: none; } .btn-upload-map { padding: 10px 20px; border: 1px solid #1D9E75; border-radius: 8px; background: #fff; color: #1D9E75; font-size: 14px; font-weight: bold; cursor: pointer; } /* ---- BOTTOM PANEL ---- */ #bottom-panel { background: #fff; border-top: 1px solid #e0e0e0; padding: 10px 12px 16px; flex-shrink: 0; } #animal-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 10px; } .animal-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: 2px solid #e0e0e0; border-radius: 8px; background: #f9f9f9; cursor: pointer; transition: all 0.1s; } .animal-btn:active { transform: scale(0.95); } .animal-btn.selected { border-color: #1D9E75; background: #eaf3de; } .animal-icon { font-size: 22px; line-height: 1; } .animal-name { font-size: 9px; color: #666; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; } .animal-btn.selected .animal-name { color: #3B6D11; } #report-btn { width: 100%; padding: 13px; border: none; border-radius: 8px; background: #1D9E75; color: white; font-size: 15px; font-weight: bold; cursor: pointer; } #report-btn:disabled { background: #e0e0e0; color: #aaa; cursor: default; } /* ---- SIGHTINGS PANEL ---- */ #sightings-panel { position: absolute; top: 48px; right: 8px; z-index: 20; background: #fff; border: 1px solid #ccc; border-radius: 12px; width: 245px; max-height: 370px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 16px rgba(0,0,0,0.12); } #sightings-panel.hidden { display: none; } #sightings-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #eee; flex-shrink: 0; } #sightings-header span { font-size: 13px; font-weight: bold; } #close-sightings { background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; line-height: 1; } #sightings-list { overflow-y: auto; flex: 1; } .sighting-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; } .sighting-row:last-child { border-bottom: none; } .sighting-animal-icon { font-size: 20px; width: 26px; text-align: center; flex-shrink: 0; } .sighting-info { flex: 1; min-width: 0; } .sighting-name { font-size: 13px; font-weight: bold; } .sighting-time { font-size: 11px; color: #999; } .expiry-bar-wrap { height: 3px; background: #eee; border-radius: 2px; margin-top: 4px; } .expiry-bar { height: 100%; border-radius: 2px; } .expiry-bar.fresh { background: #639922; } .expiry-bar.mid { background: #EF9F27; } .expiry-bar.old { background: #E24B4A; } .del-btn { background: none; border: none; color: #ccc; font-size: 14px; cursor: pointer; padding: 2px 4px; flex-shrink: 0; } .del-btn:hover { color: #E24B4A; } .sighting-empty { padding: 20px; text-align: center; color: #aaa; font-size: 13px; } /* ---- TOAST ---- */ #toast { position: fixed; bottom: 170px; left: 50%; transform: translateX(-50%); padding: 9px 18px; border-radius: 20px; font-size: 13px; font-weight: bold; z-index: 100; white-space: nowrap; pointer-events: none; transition: opacity 0.3s; } #toast.success { background: #eaf3de; color: #3B6D11; border: 1px solid #639922; } #toast.error { background: #fcebeb; color: #A32D2D; border: 1px solid #E24B4A; } #toast.warning { background: #faeeda; color: #854F0B; border: 1px solid #EF9F27; } #toast.hidden { opacity: 0; } /* ---- LOADING ---- */ #loading-overlay { position: absolute; inset: 0; background: rgba(244,244,240,0.85); display: flex; align-items: center; justify-content: center; z-index: 5; } #loading-overlay.hidden { display: none; } .spinner { width: 30px; height: 30px; border: 3px solid #ddd; border-top-color: #1D9E75; border-radius: 50%; animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%,100% { opacity: 0.25; } 50% { opacity: 0.08; } } .gps-pulse { animation: pulse 2s ease-in-out infinite; } </style> </head> <body> <div id="app"> <!-- ========== SETUP ========== --> <div id="setup-screen"> <div style="text-align:center; padding:16px 0 20px;"> <div style="font-size:32px; margin-bottom:8px;">🐾</div> <h1 style="font-size:22px; margin-bottom:4px;">Wildlife Tracker</h1> <p style="font-size:13px; color:#888;">Signalez les animaux en temps réel</p> </div> <div class="setup-card"> <h3>1 · Importez votre carte PDF</h3> <label class="upload-zone" id="upload-zone"> <input type="file" id="pdf-input" accept=".pdf" style="display:none"> <div id="upload-text" style="font-size:13px; color:#888;"> <div style="font-size:26px; margin-bottom:8px;">📂</div> Appuyez pour sélectionner le PDF de la réserve </div> </label> </div> <div class="setup-card"> <h3>2 · Limites géographiques de la carte</h3> <p class="setup-hint">Entrez les coordonnées GPS des coins de votre PDF (trouvables dans Google Earth ou les propriétés du fichier).</p> <div class="coord-grid"> <div class="coord-field"><label>Latitude Nord (haut)</label><input type="number" id="c-maxLat" step="any" placeholder="-24.100"></div> <div class="coord-field"><label>Longitude Ouest (gauche)</label><input type="number" id="c-minLng" step="any" placeholder="31.000"></div> <div class="coord-field"><label>Latitude Sud (bas)</label><input type="number" id="c-minLat" step="any" placeholder="-24.600"></div> <div class="coord-field"><label>Longitude Est (droite)</label><input type="number" id="c-maxLng" step="any" placeholder="31.500"></div> </div> </div> <button class="btn-primary" id="start-btn">Démarrer →</button> <p style="font-size:11px; color:#bbb; text-align:center; margin-top:12px; line-height:1.6;"> Signalements partagés entre tous · Expiration automatique après 5 heures<br> Données enregistrées dans Google Sheets </p> </div> <!-- ========== CARTE ========== --> <div id="map-screen" style="display:none;"> <div id="topbar"> <div id="topbar-left"> <span id="topbar-title">🐾 Wildlife</span> <span id="gps-badge" class="searching">GPS…</span> </div> <div id="topbar-right"> <button class="icon-btn" id="count-btn">📋 0</button> <button class="icon-btn" id="settings-btn">⚙</button> </div> </div> <div id="map-area"> <div id="loading-overlay"><div class="spinner"></div></div> <div id="map-canvas-wrap"> <canvas id="map-canvas"></canvas> <svg id="svg-overlay" width="0" height="0"></svg> </div> <div id="no-pdf-overlay" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#f0f0ec;"> <p style="font-size:14px;color:#777;text-align:center;">Rechargez votre PDF de carte pour cette session</p> <label class="btn-upload-map"> <input type="file" id="pdf-reload-input" accept=".pdf" style="display:none"> 📂 Importer la carte </label> </div> </div> <div id="bottom-panel"> <div id="animal-grid"></div> <button id="report-btn" disabled>Sélectionnez un animal</button> </div> <div id="sightings-panel" class="hidden"> <div id="sightings-header"> <span>Observations <span id="sightings-count-label" style="color:#aaa;font-weight:normal;font-size:12px;"></span></span> <button id="close-sightings">×</button> </div> <div id="sightings-list"><div class="sighting-empty">Aucun signalement actif</div></div> </div> </div> </div> <div id="toast" class="hidden"></div> <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script> <script> pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; const ANIMALS = [ { id:"lion", emoji:"🦁", name:"Lion" }, { id:"elephant", emoji:"🐘", name:"Éléphant" }, { id:"giraffe", emoji:"🦒", name:"Girafe" }, { id:"zebra", emoji:"🦓", name:"Zèbre" }, { id:"rhino", emoji:"🦏", name:"Rhinocéros" }, { id:"buffalo", emoji:"🐃", name:"Buffle" }, { id:"leopard", emoji:"🐆", name:"Léopard" }, { id:"hippo", emoji:"🦛", name:"Hippo" }, { id:"croco", emoji:"🐊", name:"Crocodile" }, { id:"warthog", emoji:"🐗", name:"Phacochère" }, { id:"wilddog", emoji:"🐕", name:"Lycaon" }, { id:"impala", emoji:"🦌", name:"Impala" }, ]; const EXPIRY_MS = 5 * 60 * 60 * 1000; let state = { pdfBase64: null, bounds: null, sightings: [], selectedAnimal: null, userPos: null, gpsStatus: "searching", canvasW: 0, canvasH: 0, pdfRendered: false, }; let gpsWatchId = null, pollInterval = null, toastTimer = null; // ---- UTILS EXPIRATION ---- function filterExpired(list) { return list.filter(s => (Date.now() - s.ts) < EXPIRY_MS); } function expiryPct(ts) { return Math.min(100, Math.round(((Date.now() - ts) / EXPIRY_MS) * 100)); } function formatRemaining(ts) { const ms = Math.max(0, EXPIRY_MS - (Date.now() - ts)); const h = Math.floor(ms / 3600000); const m = Math.floor((ms % 3600000) / 60000); return h > 0 ? expire dans ${h}h${String(m).padStart(2,"0")} : expire dans ${m} min; } // ---- INIT ---- function init() { buildAnimalGrid(); bindSetupEvents(); bindMapEvents(); // Charger les limites depuis Apps Script google.script.run .withSuccessHandler(function(boundsJson) { if (boundsJson) state.bounds = JSON.parse(boundsJson); // Charger les signalements google.script.run .withSuccessHandler(function(json) { state.sightings = filterExpired(JSON.parse(json) || []); if (state.bounds) goToMap(); }) .withFailureHandler(function() { /* ignore */ }) .getSightings(); }) .withFailureHandler(function() { /* ignore */ }) .getBounds(); } // ---- SETUP ---- function bindSetupEvents() { document.getElementById("pdf-input").addEventListener("change", handlePdfUpload); document.getElementById("start-btn").addEventListener("click", handleStart); } function handlePdfUpload(e) { var file = e.target.files[0]; if (!file) return; var reader = new FileReader(); reader.onload = function(ev) { state.pdfBase64 = ev.target.result.split(",")[1]; document.getElementById("upload-zone").classList.add("has-file"); document.getElementById("upload-text").innerHTML = '<div style="font-size:20px;margin-bottom:4px;">✅</div><strong>' + file.name + '</strong>'; }; reader.readAsDataURL(file); } function handleStart() { var maxLat = parseFloat(document.getElementById("c-maxLat").value); var minLng = parseFloat(document.getElementById("c-minLng").value); var minLat = parseFloat(document.getElementById("c-minLat").value); var maxLng = parseFloat(document.getElementById("c-maxLng").value); if ([maxLat,minLng,minLat,maxLng].some(isNaN)) { showToast("Remplissez tous les champs de coordonnées", "error"); return; } if (!state.pdfBase64) { showToast("Importez d'abord votre PDF", "error"); return; } state.bounds = { maxLat: maxLat, minLng: minLng, minLat: minLat, maxLng: maxLng }; google.script.run.saveBounds(JSON.stringify(state.bounds)); goToMap(); } // ---- MAP ---- function goToMap() { document.getElementById("setup-screen").style.display = "none"; document.getElementById("map-screen").style.display = "flex"; startGPS(); startPolling(); updateSightingsPanel(); if (state.pdfBase64) renderPdf(state.pdfBase64); else showNoPdf(); } function bindMapEvents() { document.getElementById("count-btn").addEventListener("click", toggleSightingsPanel); document.getElementById("close-sightings").addEventListener("click", function() { document.getElementById("sightings-panel").classList.add("hidden"); }); document.getElementById("settings-btn").addEventListener("click", function() { if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId); clearInterval(pollInterval); document.getElementById("setup-screen").style.display = "block"; document.getElementById("map-screen").style.display = "none"; state.pdfRendered = false; }); document.getElementById("report-btn").addEventListener("click", submitSighting); document.getElementById("pdf-reload-input").addEventListener("change", function(e) { var file = e.target.files[0]; if (!file) return; var reader = new FileReader(); reader.onload = function(ev) { state.pdfBase64 = ev.target.result.split(",")[1]; document.getElementById("no-pdf-overlay").style.display = "none"; renderPdf(state.pdfBase64); }; reader.readAsDataURL(file); }); } function buildAnimalGrid() { var grid = document.getElementById("animal-grid"); ANIMALS.forEach(function(a) { var btn = document.createElement("button"); btn.className = "animal-btn"; btn.dataset.id = a.id; btn.innerHTML = '<span class="animal-icon">' + a.emoji + '</span><span class="animal-name">' + a.name + '</span>'; btn.addEventListener("click", function() { selectAnimal(a.id); }); grid.appendChild(btn); }); } function selectAnimal(id) { state.selectedAnimal = state.selectedAnimal === id ? null : id; document.querySelectorAll(".animal-btn").forEach(function(b) { b.classList.toggle("selected", b.dataset.id === state.selectedAnimal); }); updateReportBtn(); } function updateReportBtn() { var btn = document.getElementById("report-btn"); var animal = ANIMALS.find(function(a) { return a.id === state.selectedAnimal; }); if (!state.selectedAnimal) { btn.textContent = "← Sélectionnez un animal"; btn.disabled = true; } else if (state.gpsStatus !== "ok") { btn.textContent = animal.emoji + " " + animal.name + " — En attente GPS…"; btn.disabled = true; } else { btn.textContent = "📍 Signaler " + animal.emoji + " " + animal.name; btn.disabled = false; } } // ---- GPS ---- function startGPS() { if (!navigator.geolocation) { setGpsStatus("error"); return; } gpsWatchId = navigator.geolocation.watchPosition( function(pos) { state.userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude }; setGpsStatus("ok"); drawOverlay(); }, function() { setGpsStatus("error"); }, { enableHighAccuracy: true, maximumAge: 5000 } ); } function setGpsStatus(s) { state.gpsStatus = s; var el = document.getElementById("gps-badge"); el.className = "gps-badge " + s; el.textContent = { ok:"GPS actif", searching:"GPS…", error:"GPS indisponible" }[s] || s; updateReportBtn(); } // ---- PDF ---- function renderPdf(base64) { document.getElementById("loading-overlay").classList.remove("hidden"); var binary = atob(base64); var bytes = new Uint8Array(binary.length); for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); pdfjsLib.getDocument({ data: bytes }).promise.then(function(pdf) { return pdf.getPage(1); }).then(function(page) { var containerW = document.getElementById("map-area").clientWidth || 360; var vp0 = page.getViewport({ scale: 1 }); var scale = containerW / vp0.width; var vp = page.getViewport({ scale: scale }); var canvas = document.getElementById("map-canvas"); canvas.width = vp.width; canvas.height = vp.height; state.canvasW = vp.width; state.canvasH = vp.height; var svg = document.getElementById("svg-overlay"); svg.setAttribute("width", vp.width); svg.setAttribute("height", vp.height); return page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise; }).then(function() { state.pdfRendered = true; drawOverlay(); document.getElementById("loading-overlay").classList.add("hidden"); }).catch(function() { showToast("Erreur de rendu PDF", "error"); document.getElementById("loading-overlay").classList.add("hidden"); }); } function showNoPdf() { document.getElementById("loading-overlay").classList.add("hidden"); document.getElementById("no-pdf-overlay").style.display = "flex"; } // ---- OVERLAY SVG ---- function gpsToXY(lat, lng) { var b = state.bounds; if (!b || state.canvasW === 0) return null; return { x: ((lng - b.minLng) / (b.maxLng - b.minLng)) * state.canvasW, y: ((b.maxLat - lat) / (b.maxLat - b.minLat)) * state.canvasH }; } function drawOverlay() { if (!state.pdfRendered) return; var svg = document.getElementById("svg-overlay"); var html = ""; state.sightings.forEach(function(s) { var pos = gpsToXY(s.lat, s.lng); if (!pos) return; if (pos.x < 0 || pos.y < 0 || pos.x > state.canvasW || pos.y > state.canvasH) return; var animal = ANIMALS.find(function(a) { return a.id === s.animal; }); var emoji = animal ? animal.emoji : "?"; var opacity = (1 - (expiryPct(s.ts) / 100) * 0.5).toFixed(2); html += '<g transform="translate(' + pos.x + ',' + pos.y + ')" opacity="' + opacity + '">' + '<circle r="16" fill="rgba(0,0,0,0.5)"/>' + '<text y="6" text-anchor="middle" font-size="18">' + emoji + '</text>' + '</g>'; }); if (state.userPos && state.gpsStatus === "ok") { var p = gpsToXY(state.userPos.lat, state.userPos.lng); if (p && p.x >= 0 && p.y >= 0 && p.x <= state.canvasW && p.y <= state.canvasH) { html += '<g transform="translate(' + p.x + ',' + p.y + ')">' + '<circle class="gps-pulse" r="18" fill="#185FA5" opacity="0.2"/>' + '<circle r="7" fill="#378ADD"/>' + '<circle r="7" fill="none" stroke="white" stroke-width="2"/>' + '</g>'; } } svg.innerHTML = html; } // ---- SUBMIT ---- function submitSighting() { if (!state.selectedAnimal) { showToast("Choisissez un animal", "warning"); return; } if (!state.userPos) { showToast("GPS non disponible", "error"); return; } var animal = ANIMALS.find(function(a) { return a.id === state.selectedAnimal; }); var id = Date.now().toString(36) + Math.random().toString(36).slice(2); var ts = Date.now(); google.script.run .withSuccessHandler(function() { var sighting = { id: id, animal: state.selectedAnimal, lat: state.userPos.lat, lng: state.userPos.lng, ts: ts }; state.sightings = filterExpired([...state.sightings, sighting]); showToast(animal.emoji + " " + animal.name + " signalé — expire dans 5h", "success"); state.selectedAnimal = null; document.querySelectorAll(".animal-btn").forEach(function(b) { b.classList.remove("selected"); }); updateReportBtn(); drawOverlay(); updateSightingsPanel(); }) .withFailureHandler(function() { showToast("Erreur de sauvegarde", "error"); }) .addSighting(id, state.selectedAnimal, state.userPos.lat, state.userPos.lng, ts); } // ---- POLL (30s) ---- function startPolling() { pollInterval = setInterval(function() { google.script.run .withSuccessHandler(function(json) { state.sightings = filterExpired(JSON.parse(json) || []); drawOverlay(); updateSightingsPanel(); }) .getSightings(); }, 30000); } // ---- PANEL ---- function toggleSightingsPanel() { var p = document.getElementById("sightings-panel"); p.classList.toggle("hidden"); if (!p.classList.contains("hidden")) updateSightingsList(); } function updateSightingsPanel() { document.getElementById("count-btn").textContent = "📋 " + state.sightings.length; if (!document.getElementById("sightings-panel").classList.contains("hidden")) updateSightingsList(); } function updateSightingsList() { var list = document.getElementById("sightings-list"); var label = document.getElementById("sightings-count-label"); label.textContent = "· " + state.sightings.length + " actif" + (state.sightings.length !== 1 ? "s" : ""); if (state.sightings.length === 0) { list.innerHTML = '<div class="sighting-empty">Aucun signalement actif</div>'; return; } var sorted = state.sightings.slice().sort(function(a,b) { return b.ts - a.ts; }); list.innerHTML = sorted.map(function(s) { var animal = ANIMALS.find(function(a) { return a.id === s.animal; }); var d = new Date(s.ts); var time = d.toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" }); var pct = expiryPct(s.ts); var barClass = pct < 40 ? "fresh" : pct < 75 ? "mid" : "old"; var color = pct < 40 ? "#3B6D11" : pct < 75 ? "#854F0B" : "#A32D2D"; var remain = formatRemaining(s.ts); return '<div class="sighting-row">' + '<span class="sighting-animal-icon">' + (animal ? animal.emoji : "?") + '</span>' + '<div class="sighting-info">' + '<div class="sighting-name">' + (animal ? animal.name : s.animal) + '</div>' + '<div class="sighting-time">À ' + time + ' · <span style="color:' + color + '">' + remain + '</span></div>' + '<div class="expiry-bar-wrap"><div class="expiry-bar ' + barClass + '" style="width:' + (100-pct) + '%"></div></div>' + '</div>' + '<button class="del-btn" data-id="' + s.id + '" title="Supprimer">✕</button>' + '</div>'; }).join(""); list.querySelectorAll(".del-btn").forEach(function(btn) { btn.addEventListener("click", function() { var id = btn.dataset.id; google.script.run .withSuccessHandler(function() { state.sightings = state.sightings.filter(function(s) { return s.id !== id; }); drawOverlay(); updateSightingsPanel(); }) .deleteSighting(id); }); }); } // ---- TOAST ---- function showToast(msg, type) { var el = document.getElementById("toast"); el.textContent = msg; el.className = type || "success"; clearTimeout(toastTimer); toastTimer = setTimeout(function() { el.className = "hidden"; }, 3500); } init(); </script> </body> </html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wildlife Tracker</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D9E75">
+
+<style>
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#f4f4f0;
+}
+
+header {
+  background:#1D9E75;
+  color:white;
+  padding:12px;
+  text-align:center;
+  font-weight:bold;
+}
+
+#container {
+  padding:10px;
+}
+
+#map {
+  width:100%;
+  height:60vh;
+  background:#ddd;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+canvas {
+  width:100%;
+}
+
+button {
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  background:#1D9E75;
+  color:white;
+  font-size:16px;
+}
+
+.animal {
+  display:inline-block;
+  padding:10px;
+  margin:5px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.selected {
+  background:#1D9E75;
+  color:white;
+}
+
+#toast {
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#333;
+  color:white;
+  padding:10px 20px;
+  border-radius:20px;
+}
+
+.hidden { display:none; }
+</style>
+
+</head>
+
+<body>
+
+<header>🐾 Wildlife Tracker</header>
+
+<div id="container">
+
+<input type="file" id="pdfInput" accept=".pdf">
+
+<div id="map">
+  <span>Charge ton PDF</span>
+  <canvas id="canvas"></canvas>
+</div>
+
+<button onclick="startGPS()">Activer GPS</button>
+
+<h3>Animaux</h3>
+<div id="animals"></div>
+
+<button onclick="report()">Signaler</button>
+
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<script>
+let state = {
+  pdf:null,
+  animal:null,
+  gps:null,
+  sightings:[]
+};
+
+const animals = ["🦁","🐘","🦒","🦓"];
+
+function init(){
+  const saved = localStorage.getItem("data");
+  if(saved) state = JSON.parse(saved);
+
+  renderAnimals();
+
+  if(state.pdf){
+    renderPDF(state.pdf);
+  }
+}
+
+function save(){
+  localStorage.setItem("data", JSON.stringify(state));
+}
+
+// ---------- ANIMAUX ----------
+function renderAnimals(){
+  const div = document.getElementById("animals");
+  div.innerHTML="";
+  animals.forEach(a=>{
+    const el = document.createElement("div");
+    el.className="animal";
+    if(state.animal===a) el.classList.add("selected");
+    el.innerText=a;
+    el.onclick=()=>{
+      state.animal=a;
+      renderAnimals();
+    };
+    div.appendChild(el);
+  });
+}
+
+// ---------- PDF ----------
+document.getElementById("pdfInput").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    state.pdf = ev.target.result;
+    save();
+    renderPDF(state.pdf);
+    show("PDF chargé");
+  };
+  reader.readAsDataURL(file);
+});
+
+function renderPDF(data){
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const loadingTask = pdfjsLib.getDocument(data);
+  loadingTask.promise.then(pdf=>{
+    return pdf.getPage(1);
+  }).then(page=>{
+    const viewport = page.getViewport({scale:1});
+    const scale = canvas.parentElement.clientWidth / viewport.width;
+    const vp = page.getViewport({scale:scale});
+
+    canvas.width = vp.width;
+    canvas.height = vp.height;
+
+    return page.render({
+      canvasContext: ctx,
+      viewport: vp
+    }).promise;
+  }).catch(()=>{
+    show("Erreur PDF");
+  });
+}
+
+// ---------- GPS ----------
+function startGPS(){
+  if(!navigator.geolocation){
+    show("GPS non supporté");
+    return;
+  }
+
+  navigator.geolocation.watchPosition(pos=>{
+    state.gps = {
+      lat:pos.coords.latitude,
+      lng:pos.coords.longitude
+    };
+    save();
+    show("GPS actif");
+  }, ()=>{
+    show("Erreur GPS");
+  });
+}
+
+// ---------- REPORT ----------
+function report(){
+  if(!state.animal || !state.gps){
+    show("Choisir animal + GPS");
+    return;
+  }
+
+  state.sightings.push({
+    animal:state.animal,
+    gps:state.gps,
+    time:Date.now()
+  });
+
+  save();
+  show("Signalé !");
+}
+
+// ---------- TOAST ----------
+function show(msg){
+  const t = document.getElementById("toast");
+  t.innerText=msg;
+  t.classList.remove("hidden");
+  setTimeout(()=>t.classList.add("hidden"),2000);
+}
+
+// ---------- PWA ----------
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+
+init();
+</script>
+
+</body>
+</html>
