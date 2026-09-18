@@ -6,7 +6,7 @@
  *  Un chemin absolu ("/index.html") pointerait vers la racine du domaine,
  *  addAll() échouerait et l'installation entière serait annulée.
  * ------------------------------------------------------------------ */
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE   = "leadwood-" + VERSION;
 
 const PRECACHE = [
@@ -69,7 +69,11 @@ self.addEventListener("fetch", (event) => {
       const res = await fetch(req);
       if (res && (res.ok || res.type === "opaque")) {
         // On ne met en cache que nos fichiers et les polices Google.
-        if (url.origin === self.location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) {
+        // Nos fichiers, les polices Google, et pdf.js si l'on est passé
+        // par le repli CDN (dossier vendor/ absent du serveur).
+        if (url.origin === self.location.origin
+            || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)
+            || url.hostname === "cdnjs.cloudflare.com") {
           const cache = await caches.open(CACHE);
           cache.put(req, res.clone());
         }
