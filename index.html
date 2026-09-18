@@ -330,6 +330,10 @@ button{cursor:pointer;border:0;background:none}
         <span class="t" id="dropText">Appuyez pour choisir le PDF de la réserve</span>
       </label>
       <p class="hint">La carte est conservée dans l'application : vous ne l'importerez qu'une seule fois, même hors réseau.</p>
+      <div class="check warn" id="bundleHint" hidden>
+        <span>💡</span>
+        <span>Pour que plus personne n'ait à importer quoi que ce soit : déposez la carte dans le dépôt sous le nom <strong>carte.pdf</strong>. Elle se chargera alors toute seule sur chaque appareil.</span>
+      </div>
     </div>
 
     <div class="card">
@@ -521,6 +525,31 @@ async function idbGet(key) {
     rq.onerror = () => rej(rq.error);
   });
 }
+async function idbDel(key) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+
+/* La carte livrée avec l'application : « carte.pdf » déposé à la racine du
+   dépôt. Présente, elle évite à chaque guide d'importer quoi que ce soit.
+   Elle n'est pas recopiée dans IndexedDB : le service worker la garde en
+   cache pour le hors-ligne, et une nouvelle version publiée remplace
+   l'ancienne au prochain changement de VERSION dans sw.js. */
+async function fetchBundledMap() {
+  try {
+    const r = await fetch("carte.pdf");
+    if (!r.ok) return null;
+    const buf = await r.arrayBuffer();
+    // Un hébergeur qui renvoie une page d'erreur en 200 nous donnerait du
+    // HTML : on vérifie la signature du fichier plutôt que l'en-tête.
+    const sig = String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 5)));
+    return sig === "%PDF-" ? buf : null;
+  } catch (e) { return null; }
+}
 
 /* -------------------------------- État ------------------------------ */
 const S = {
@@ -528,7 +557,7 @@ const S = {
   k:1, tx:0, ty:0, fitK:1,
   pos:null, acc:null, gps:"searching",
   animal:null, follow:true,
-  placing:false, selected:null, pendingFile:null
+  placing:false, selected:null, pendingFile:null, mapSource:null
 };
 let watchId = null;
 
@@ -1188,7 +1217,8 @@ function openSettings() {
     <div class="field">
       <span class="label">Carte et calage</span>
       <div class="menu">
-        <button id="swapMap"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13.5 12 18.5l9-5"/></svg>Changer le PDF de la réserve</button>
+        <button id="swapMap"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13.5 12 18.5l9-5"/></svg>Changer le PDF de la réserve<span class="sub">${S.mapSource === "depot" ? "carte du dépôt" : "carte importée"}</span></button>
+        ${S.mapSource === "import" ? `<button id="useBundled"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.3-6.4M21 12a9 9 0 0 1-15.3 6.4"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>Revenir à la carte du dépôt</button>` : ""}
         <button id="editB"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16l9-9 3 3-9 9H6v-3Z"/></svg>Modifier les coins GPS<span class="sub">${B.maxLat.toFixed(4)} / ${B.minLng.toFixed(4)}</span></button>
       </div>
     </div>
@@ -1229,6 +1259,12 @@ function openSettings() {
 
   $("goSync").addEventListener("click", openSync);
   $("swapMap").addEventListener("click", () => $("pdfSwap").click());
+  const ub = $("useBundled");
+  if (ub) ub.addEventListener("click", async () => {
+    await idbDel("map").catch(() => {});
+    toast("Retour à la carte du dépôt…");
+    setTimeout(() => location.reload(), 700);
+  });
   $("editB").addEventListener("click", editBounds);
   $("expJson").addEventListener("click", () => dl(`signalements-${stamp()}.json`, "application/json",
     JSON.stringify({ app:"leadwood-tracker", version:1, bounds:b(), exported:new Date().toISOString(), sightings }, null, 2)));
@@ -1299,6 +1335,7 @@ $("pdfSwap").addEventListener("change", async (e) => {
   try {
     const buf = await f.arrayBuffer();
     await idbPut("map", buf);
+    S.mapSource = "import";
     closeSheet();
     $("loading").hidden = false;
     await renderPdf(buf);
@@ -1624,8 +1661,14 @@ setInterval(() => { if (S.rendered) { drawOverlay(); updateCount(); } }, 60000);
 
 (async function boot() {
   let buf = null;
-  try { buf = await idbGet("map"); } catch (e) {}
-  if (buf) { await enterMap(buf); }
+  try { buf = await idbGet("map"); } catch (e) {}       // carte importée sur cet appareil
+  if (buf) { S.mapSource = "import"; }
+  else {
+    buf = await fetchBundledMap();                       // carte livrée avec l'app
+    if (buf) S.mapSource = "depot";
+  }
+  if (buf) await enterMap(buf);
+  else $("bundleHint").hidden = false;
 })();
 
 if ("serviceWorker" in navigator) {

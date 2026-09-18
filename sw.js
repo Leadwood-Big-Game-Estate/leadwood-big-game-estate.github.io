@@ -6,7 +6,7 @@
  *  Un chemin absolu ("/index.html") pointerait vers la racine du domaine,
  *  addAll() échouerait et l'installation entière serait annulée.
  * ------------------------------------------------------------------ */
-const VERSION = "v5";
+const VERSION = "v6";
 const CACHE   = "leadwood-" + VERSION;
 
 const PRECACHE = [
@@ -16,7 +16,12 @@ const PRECACHE = [
   "./icon-192.png",
   "./icon-512.png",
   "./pdf.min.js",
-  "./pdf.worker.min.js"
+  "./pdf.worker.min.js",
+  // Carte de la réserve livrée avec l'app. Absente, elle est simplement
+  // ignorée (chaque appareil importera alors sa carte à la main).
+  // Après avoir publié une nouvelle carte, incrémenter VERSION ci-dessus
+  // pour que les appareils déjà installés la récupèrent.
+  "./carte.pdf"
 ];
 
 /* ------------------------------ Install ---------------------------- */
