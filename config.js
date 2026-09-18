@@ -16,7 +16,7 @@
  *  tombe sur l'adresse ; la vraie protection, ce sont les comptes
  *  Supabase, qui eux sont vérifiés par le serveur.
  */
-window.LW_GATE_HASH = "b7838bdcc707e9a01070b6a81c61d578e650d54f8423d3f672c96ad089342f5a";
+window.LW_GATE_HASH = "839d66354adb5398982369c77725b29c0eef948308953aec3c73186f712fcb79";
 
 /*  Véhicules de la réserve.
  *
