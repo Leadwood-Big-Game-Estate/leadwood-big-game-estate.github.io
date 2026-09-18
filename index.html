@@ -410,13 +410,13 @@ button{cursor:pointer;border:0;background:none}
 <input type="file" id="importInput" accept="application/json,.json" hidden>
 <input type="file" id="pdfSwap" accept="application/pdf,.pdf" hidden>
 
-<script src="vendor/pdfjs/pdf.min.js"></script>
+<script src="pdf.min.js"></script>
 <script>
-// Repli : si le dossier vendor/ n'a pas été déposé sur le serveur, on va
-// chercher pdf.js sur un CDN. L'app fonctionne alors dès le premier
+// Repli : si pdf.min.js n'a pas été déposé sur le serveur, on va
+// le chercher sur un CDN. L'app fonctionne alors dès le premier
 // lancement connecté, et le service worker met la bibliothèque en cache
-// pour les suivants. Déposer vendor/ reste préférable : plus rien à
-// télécharger, même au tout premier démarrage.
+// pour les suivants. Déposer les deux fichiers reste préférable : plus
+// rien à télécharger, même au tout premier démarrage.
 //
 // Chargement par insertion de balise plutôt que par document.write :
 // Chrome refuse d'exécuter un script tiers injecté par document.write
@@ -424,7 +424,7 @@ button{cursor:pointer;border:0;background:none}
 window.__PDFCDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
 window.pdfReady = (function () {
   if (typeof pdfjsLib !== "undefined") {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
     return Promise.resolve("local");
   }
   return new Promise(function (resolve, reject) {
@@ -448,8 +448,8 @@ window.pdfReady.catch(function () {});   // l'échec est traité au moment de l'
 (function () {
 "use strict";
 
-const PDF_ABSENT = "Le moteur PDF n'a pas pu être chargé : déposez le dossier "
-                 + "vendor/ dans le dépôt, ou connectez-vous une fois au réseau.";
+const PDF_ABSENT = "Le moteur PDF n'a pas pu être chargé : déposez pdf.min.js et "
+                 + "pdf.worker.min.js dans le dépôt, ou connectez-vous une fois au réseau.";
 
 /* ---------------------------- Référentiel --------------------------- */
 const ANIMALS = [
