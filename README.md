@@ -262,9 +262,23 @@ L'application détecte seule le passage en mode authentifié : le serveur répon
 anonyme, et l'écran de connexion apparaît.
 
 **Créer un guide :** *Authentication → Users → Add user*, e-mail et mot de passe, en cochant
-*Auto Confirm User*. Pour que son véhicule s'affiche sur ses signalements, renseigner les
-métadonnées du compte : `{ "vehicule": "Land Cruiser 2 — Sipho" }`. À défaut, l'adresse e-mail
-est utilisée.
+*Auto Confirm User*. Puis ajouter le véhicule à la liste `LW_VEHICULES` de `config.js` :
+
+```js
+window.LW_VEHICULES = [
+  { nom: "Land Cruiser 2", email: "cruiser2@leadwood.local" }
+];
+```
+
+Le guide ne voit que le nom : il choisit son véhicule dans une liste déroulante et tape son mot
+de passe. L'adresse ne sert qu'en interne, n'a pas besoin d'exister réellement — aucun courriel
+n'est envoyé — et le nom affiché sur ses signalements vient de cette liste.
+
+Conséquence à connaître : puisque ces adresses sont fictives, la réinitialisation de mot de passe
+par courriel ne fonctionne pas. Un mot de passe oublié se change depuis le tableau de bord
+Supabase, ce qui correspond de toute façon au fonctionnement voulu — c'est vous qui les délivrez.
+
+Laisser `LW_VEHICULES` vide fait réapparaître la saisie classique e-mail + mot de passe.
 
 **Retirer un guide :** supprimer son compte dans la même page. Ses signalements passés restent
 en base, ses identifiants cessent de fonctionner immédiatement, et aucun autre appareil n'est à

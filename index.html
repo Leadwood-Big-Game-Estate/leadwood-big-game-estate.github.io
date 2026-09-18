@@ -88,6 +88,11 @@ button{cursor:pointer;border:0;background:none}
 .gate-box .sub{font-size:13px;color:var(--ink-mute);margin-bottom:6px}
 .gate-box .err{font-size:13px;font-weight:600;color:var(--clay)}
 .gate-box .link{font-size:13px;font-weight:600;color:var(--ink-mute);padding:8px;text-decoration:underline}
+.gate-box .note{font-size:12.5px;color:var(--ink-mute);line-height:1.45}
+select.inp{
+  appearance:none;-webkit-appearance:none;text-align:center;text-align-last:center;
+  font-weight:600;background-image:none;cursor:pointer;
+}
 #login{z-index:1900}
 
 /* ----------------------------- Accueil ----------------------------- */
@@ -349,12 +354,14 @@ button{cursor:pointer;border:0;background:none}
       <svg viewBox="0 0 24 24"><path d="M12 14.2c-2.6 0-5.4 1.8-5.4 4.1 0 1.6 1.4 2.4 3 2.4.9 0 1.7-.3 2.4-.3s1.5.3 2.4.3c1.6 0 3-.8 3-2.4 0-2.3-2.8-4.1-5.4-4.1Z"/><ellipse cx="6.2" cy="11" rx="2.1" ry="2.7"/><ellipse cx="17.8" cy="11" rx="2.1" ry="2.7"/><ellipse cx="9.6" cy="6.3" rx="1.9" ry="2.5"/><ellipse cx="14.4" cy="6.3" rx="1.9" ry="2.5"/></svg>
     </div>
     <h1>Connexion</h1>
-    <p class="sub">Votre compte guide donne accès aux signalements de l'équipe.</p>
+    <p class="sub" id="loginSub">Votre compte guide donne accès aux signalements de l'équipe.</p>
+    <select class="inp" id="loginVeh" hidden aria-label="Véhicule"></select>
     <input class="inp" type="email" id="loginEmail" placeholder="Adresse e-mail" autocomplete="username" autocapitalize="off" spellcheck="false">
     <input class="inp" type="password" id="loginPass" placeholder="Mot de passe" autocomplete="current-password">
     <p class="err" id="loginErr" hidden></p>
     <button class="btn" id="loginGo">Se connecter</button>
-    <button class="link" id="loginSkip">Utiliser sans le partage</button>
+    <button class="link" id="loginSkip">Changer de projet Supabase</button>
+    <p class="note" id="loginNote">Sans compte, vos signalements ne parviendraient à personne.</p>
   </div>
 </section>
 
@@ -1262,7 +1269,12 @@ function openSheet(title, right) {
 function closeSheet() {
   sheet.classList.remove("open"); scrim.classList.remove("open");
   sheetMode = null;
-  setTimeout(() => { sheet.hidden = true; scrim.hidden = true; }, 280);
+  setTimeout(() => {
+    sheet.hidden = true; scrim.hidden = true;
+    // Le projet exige un compte et on n'en a pas : on revient à la connexion
+    // plutôt que de laisser l'app utilisable en silence, sans rien partager.
+    if (syncOn() && authRequired() && !loggedIn()) showLogin();
+  }, 280);
 }
 scrim.addEventListener("click", closeSheet);
 document.addEventListener("keydown", (e) => {
@@ -1538,7 +1550,15 @@ function me() { return (session && session.user) || null; }
 function myName() {
   const u = me();
   if (!u) return (sync && sync.author) || null;
-  return (u.user_metadata && u.user_metadata.vehicule) || u.email || null;
+  // Le nom vient d'abord du compte, sinon du véhicule choisi à la connexion
+  // (config.js), et en dernier recours de l'adresse du compte.
+  return (u.user_metadata && u.user_metadata.vehicule)
+      || vehiculeDuCompte(u.email)
+      || u.email || null;
+}
+function vehiculeDuCompte(email) {
+  const v = vehicules().find(x => x.email === email);
+  return v ? v.nom : null;
 }
 function authRequired() { return !!(sync && sync.auth); }
 
@@ -1777,13 +1797,47 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) sync
 /* -------------------------- Écran de connexion ---------------------- */
 let loginResolve = null;
 
+/* Liste des véhicules déclarée dans config.js. Renseignée, le guide n'a
+   qu'un mot de passe à taper : l'adresse du compte est déduite du véhicule
+   choisi, et n'apparaît jamais à l'écran. Vide, on retombe sur la saisie
+   classique e-mail + mot de passe. */
+function vehicules() {
+  const v = window.LW_VEHICULES;
+  return Array.isArray(v) ? v.filter(x => x && x.nom && x.email) : [];
+}
+const K_VEH = "lw.vehicule";
+
 function showLogin() {
   const box = $("login");
   if (!box.hidden) return;
   box.hidden = false;
   $("loginErr").hidden = true;
-  $("loginEmail").value = (me() && me().email) || "";
-  setTimeout(() => { $((me() && me().email) ? "loginPass" : "loginEmail").focus(); }, 120);
+
+  const vs = vehicules();
+  const sel = $("loginVeh"), mail = $("loginEmail");
+  if (vs.length) {
+    sel.innerHTML = "";
+    vs.forEach((v, i) => {
+      const o = document.createElement("option");
+      o.value = String(i); o.textContent = v.nom;
+      sel.appendChild(o);
+    });
+    let last = 0;
+    try {
+      const prev = localStorage.getItem(K_VEH);
+      const j = vs.findIndex(v => v.email === prev);
+      if (j >= 0) last = j;
+    } catch (e) {}
+    sel.value = String(last);
+    sel.hidden = false; mail.hidden = true;
+    $("loginSub").textContent = "Choisissez votre véhicule, puis entrez son mot de passe.";
+    setTimeout(() => $("loginPass").focus(), 120);
+  } else {
+    sel.hidden = true; mail.hidden = false;
+    mail.value = (me() && me().email) || "";
+    $("loginSub").textContent = "Votre compte guide donne accès aux signalements de l'équipe.";
+    setTimeout(() => { $(mail.value ? "loginPass" : "loginEmail").focus(); }, 120);
+  }
 }
 function endLogin(ok) {
   $("login").hidden = true;
@@ -1804,9 +1858,16 @@ function needLogin() {
 (function bindLogin() {
   const go = async () => {
     const btn = $("loginGo");
+    const vs = vehicules();
+    let email = $("loginEmail").value, nom = null;
+    if (vs.length) {
+      const v = vs[parseInt($("loginVeh").value, 10)] || vs[0];
+      email = v.email; nom = v.nom;
+    }
     btn.disabled = true; btn.textContent = "Connexion…";
     try {
-      await signIn($("loginEmail").value, $("loginPass").value);
+      await signIn(email, $("loginPass").value);
+      if (nom) { try { localStorage.setItem(K_VEH, email); } catch (e) {} }
       if (!sync.auth) { sync.auth = true; lsSet(K_SYNC, sync); }
       $("loginPass").value = "";
       endLogin(true);
@@ -1821,12 +1882,13 @@ function needLogin() {
   };
   $("loginGo").addEventListener("click", go);
   $("loginPass").addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  // Pas d'échappatoire en un geste : un guide qui contournerait la connexion
+  // croirait signaler alors que personne ne recevrait rien. On ne propose
+  // que de corriger le projet visé — et la désactivation franche du partage
+  // reste disponible dans l'écran qui s'ouvre, pour qui la veut vraiment.
   $("loginSkip").addEventListener("click", () => {
-    // L'app reste utilisable seule : on coupe le partage sur cet appareil.
-    sync = null; lsSet(K_SYNC, null);
-    clearInterval(syncTimer);
-    endLogin(false); setSync();
-    toast("Partage désactivé sur cet appareil.");
+    $("login").hidden = true;
+    openSync();
   });
 })();
 
@@ -1934,7 +1996,11 @@ function openSync() {
 
   const off = $("syOff");
   if (off) off.addEventListener("click", () => {
-    sync = null; lsSet(K_SYNC, null); clearInterval(syncTimer); setSync(); openSync();
+    if (authRequired() && !confirm(
+      "Désactiver le partage ? Vos signalements resteront sur cet appareil et "
+      + "ne parviendront à aucun autre véhicule.")) return;
+    sync = null; lsSet(K_SYNC, null); session = null; lsSet(K_SESSION, null);
+    clearInterval(syncTimer); setSync(); openSync();
     toast("Partage désactivé : l'app repasse en local.");
   });
 
