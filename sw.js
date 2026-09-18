@@ -6,13 +6,14 @@
  *  Un chemin absolu ("/index.html") pointerait vers la racine du domaine,
  *  addAll() échouerait et l'installation entière serait annulée.
  * ------------------------------------------------------------------ */
-const VERSION = "v9";
+const VERSION = "v10";
 const CACHE   = "leadwood-" + VERSION;
 
 const PRECACHE = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./config.js",
   "./icon-192.png",
   "./icon-512.png",
   "./pdf.min.js",

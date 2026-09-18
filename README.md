@@ -18,6 +18,8 @@ l'application ne s'affiche jamais.
 
 ```
 index.html                  l'application (HTML + CSS + JS)
+config.js                   mot de passe d'ouverture (empreinte)
+motdepasse.html             outil de calcul de cette empreinte
 manifest.json               métadonnées PWA
 sw.js                       service worker (cache hors ligne)
 supabase.sql                script de création de la table partagée
@@ -50,14 +52,23 @@ git push
 racine, il n'y a aucun sous-dossier — puis supprimer l'ancien fichier `index` s'il subsiste.
 
 Vérifier ensuite dans *Settings → Pages* que la source est bien `Deploy from a branch → main → / (root)`.
-Le site répond sur `https://<compte>.github.io/leadwood-tracker/` après une minute environ.
+
+Le dépôt appartient à l'organisation **Leadwood-Big-Game-Estate** et porte le nom
+`leadwood-big-game-estate.github.io`, ce qui fait servir l'application à la racine du domaine :
+
+    https://leadwood-big-game-estate.github.io
+
+`manifest.json` ne déclare volontairement pas de champ `id` : l'identité de l'application suit
+`start_url`, qui est relatif. Le fichier reste donc valable si le dépôt est renommé ou si un nom
+de domaine est ajouté plus tard.
 
 ### Pourquoi les chemins sont relatifs
 
-Sur une page de projet, le site est servi depuis `/leadwood-tracker/` et non depuis la racine du
-domaine. Un chemin absolu comme `"/index.html"` dans `sw.js` pointe vers `github.io/index.html`,
-qui n'existe pas ; `cache.addAll()` échoue alors sur cette seule URL et **annule l'installation
-complète du service worker**. Tous les chemins du projet commencent donc par `./`.
+Tous les chemins du projet commencent par `./`. C'est ce qui permet de déplacer l'application —
+sous-dossier, racine d'un domaine, autre hébergeur — sans rien réécrire. Un chemin absolu comme
+`"/index.html"` dans `sw.js` viserait la racine du domaine ; sur une page de projet servie depuis
+un sous-dossier, `cache.addAll()` échouerait sur cette seule URL et **annulerait l'installation
+complète du service worker**.
 
 ---
 
@@ -222,19 +233,18 @@ protections ci-dessous ne sont pas décoratives.
 
 ### Mot de passe d'ouverture — mesure d'appoint
 
-`GATE_HASH`, en tête du script d'`index.html`, protège l'ouverture de l'app par un mot de passe.
-**Ce contrôle s'exécute dans le navigateur** : la page est téléchargée par quiconque connaît
-l'URL, et la condition peut être contournée en lisant la source. Il écarte le passant, pas
-quelqu'un de motivé. Il ne remplace pas les comptes.
+L'application demande un mot de passe à l'ouverture. **Ce contrôle s'exécute dans le navigateur** :
+la page est téléchargée par quiconque connaît l'URL, et la condition peut être contournée en
+lisant la source. Il écarte le passant, pas quelqu'un de motivé. Il ne remplace pas les comptes.
 
-Changer le mot de passe — dans la console du navigateur :
+Le mot de passe n'est pas stocké : seule son empreinte SHA-256 figure dans **`config.js`**, isolé
+du reste pour qu'on puisse le changer sans toucher à l'application.
 
-```js
-crypto.subtle.digest('SHA-256', new TextEncoder().encode('leadwood:' + 'NOUVEAU'))
-  .then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join('')))
-```
+**Changer le mot de passe :** ouvrir `motdepasse.html` sur le site, taper le mot de passe voulu,
+recopier la ligne affichée dans `config.js`, valider le commit. Chaque appareil déjà déverrouillé
+le redemandera — c'est l'intérêt : un téléphone perdu perd l'accès dès ce changement.
 
-Reporter la valeur affichée dans `GATE_HASH`. Mettre `GATE_HASH = ""` désactive cet écran.
+Une empreinte vide dans `config.js` désactive complètement cet écran.
 
 ### Comptes individuels — la vraie protection
 

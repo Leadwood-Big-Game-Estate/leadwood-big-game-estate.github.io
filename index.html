@@ -464,6 +464,7 @@ button{cursor:pointer;border:0;background:none}
 <input type="file" id="importInput" accept="application/json,.json" hidden>
 <input type="file" id="pdfSwap" accept="application/pdf,.pdf" hidden>
 
+<script src="config.js"></script>
 <script src="pdf.min.js"></script>
 <script>
 // Repli : si pdf.min.js n'a pas été déposé sur le serveur, on va
@@ -517,14 +518,14 @@ const PDF_ABSENT = "Le moteur PDF n'a pas pu être chargé : déposez pdf.min.js
  *  qu'elle n'est pas en place, considérez les signalements comme
  *  accessibles à qui détient la clé de partage.
  *
- *  Changer le mot de passe : coller dans la console du navigateur
- *    crypto.subtle.digest('SHA-256', new TextEncoder().encode('leadwood:'+'NOUVEAU'))
- *      .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
- *  puis remplacer GATE_HASH ci-dessous par la valeur affichée.
- *  Mettre GATE_HASH à "" désactive complètement cet écran.
+ *  Changer le mot de passe : ouvrir motdepasse.html sur ce même site,
+ *  taper le mot de passe voulu, et recopier la ligne obtenue dans
+ *  config.js. Une empreinte vide y désactive complètement cet écran.
  * =================================================================== */
 const GATE_SALT = "leadwood:";
-const GATE_HASH = "b7838bdcc707e9a01070b6a81c61d578e650d54f8423d3f672c96ad089342f5a"; // « leadwood »
+// L'empreinte vit dans config.js, pour pouvoir changer le mot de passe sans
+// toucher à ce fichier. Absente, l'écran n'est tout simplement pas affiché.
+const GATE_HASH = (typeof window.LW_GATE_HASH === "string") ? window.LW_GATE_HASH : "";
 const K_GATE = "lw.gate.v1";
 
 async function sha256(txt) {
