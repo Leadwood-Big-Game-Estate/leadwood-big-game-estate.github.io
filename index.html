@@ -72,6 +72,24 @@ button{cursor:pointer;border:0;background:none}
 [hidden]{display:none!important}
 #app{display:flex;flex-direction:column;height:100dvh}
 
+/* ------------------------- Écran d'accès --------------------------- */
+#gate,#login{
+  position:fixed;inset:0;z-index:2000;background:var(--sand);
+  display:grid;place-items:center;padding:24px;
+  padding-top:calc(var(--safe-t) + 24px);padding-bottom:calc(var(--safe-b) + 24px);
+}
+.gate-box{width:100%;max-width:330px;text-align:center;display:grid;gap:11px}
+.gate-box .mark{
+  width:58px;height:58px;border-radius:17px;background:var(--green);
+  display:grid;place-items:center;margin:0 auto 4px;box-shadow:var(--shadow-sm);
+}
+.gate-box .mark svg{width:33px;height:33px;fill:#fff}
+.gate-box h1{font-family:var(--f-dis);font-size:25px;font-weight:700;letter-spacing:-.015em}
+.gate-box .sub{font-size:13px;color:var(--ink-mute);margin-bottom:6px}
+.gate-box .err{font-size:13px;font-weight:600;color:var(--clay)}
+.gate-box .link{font-size:13px;font-weight:600;color:var(--ink-mute);padding:8px;text-decoration:underline}
+#login{z-index:1900}
+
 /* ----------------------------- Accueil ----------------------------- */
 #setup{flex:1;overflow-y:auto;padding:calc(var(--safe-t) + 22px) 20px calc(var(--safe-b) + 24px);display:flex;flex-direction:column;gap:16px}
 .hero{text-align:center;padding:10px 0 4px}
@@ -310,6 +328,36 @@ button{cursor:pointer;border:0;background:none}
 </style>
 </head>
 <body>
+<!-- ====================== Écran d'accès (provisoire) ===================== -->
+<section id="gate" hidden>
+  <div class="gate-box">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 14.2c-2.6 0-5.4 1.8-5.4 4.1 0 1.6 1.4 2.4 3 2.4.9 0 1.7-.3 2.4-.3s1.5.3 2.4.3c1.6 0 3-.8 3-2.4 0-2.3-2.8-4.1-5.4-4.1Z"/><ellipse cx="6.2" cy="11" rx="2.1" ry="2.7"/><ellipse cx="17.8" cy="11" rx="2.1" ry="2.7"/><ellipse cx="9.6" cy="6.3" rx="1.9" ry="2.5"/><ellipse cx="14.4" cy="6.3" rx="1.9" ry="2.5"/></svg>
+    </div>
+    <h1>Leadwood Tracker</h1>
+    <p class="sub">Accès réservé à l'équipe de la réserve</p>
+    <input class="inp" type="password" id="gatePass" placeholder="Mot de passe" autocomplete="current-password" autocapitalize="off" spellcheck="false">
+    <p class="err" id="gateErr" hidden>Mot de passe incorrect.</p>
+    <button class="btn" id="gateGo">Entrer</button>
+  </div>
+</section>
+
+<!-- =========================== Connexion ============================ -->
+<section id="login" hidden>
+  <div class="gate-box">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 14.2c-2.6 0-5.4 1.8-5.4 4.1 0 1.6 1.4 2.4 3 2.4.9 0 1.7-.3 2.4-.3s1.5.3 2.4.3c1.6 0 3-.8 3-2.4 0-2.3-2.8-4.1-5.4-4.1Z"/><ellipse cx="6.2" cy="11" rx="2.1" ry="2.7"/><ellipse cx="17.8" cy="11" rx="2.1" ry="2.7"/><ellipse cx="9.6" cy="6.3" rx="1.9" ry="2.5"/><ellipse cx="14.4" cy="6.3" rx="1.9" ry="2.5"/></svg>
+    </div>
+    <h1>Connexion</h1>
+    <p class="sub">Votre compte guide donne accès aux signalements de l'équipe.</p>
+    <input class="inp" type="email" id="loginEmail" placeholder="Adresse e-mail" autocomplete="username" autocapitalize="off" spellcheck="false">
+    <input class="inp" type="password" id="loginPass" placeholder="Mot de passe" autocomplete="current-password">
+    <p class="err" id="loginErr" hidden></p>
+    <button class="btn" id="loginGo">Se connecter</button>
+    <button class="link" id="loginSkip">Utiliser sans le partage</button>
+  </div>
+</section>
+
 <div id="app">
 
   <!-- ========================= Écran d'accueil ======================== -->
@@ -349,6 +397,8 @@ button{cursor:pointer;border:0;background:none}
     </div>
 
     <button class="btn" id="startBtn">Démarrer</button>
+    <button class="btn-ghost" id="setupSync" style="width:100%">Partage entre véhicules</button>
+    <p class="hint" style="text-align:center">Si la carte est rangée dans Supabase, connectez-vous ici : elle se chargera toute seule.</p>
   </section>
 
   <!-- ============================= Carte ============================= -->
@@ -455,6 +505,59 @@ window.pdfReady.catch(function () {});   // l'échec est traité au moment de l'
 const PDF_ABSENT = "Le moteur PDF n'a pas pu être chargé : déposez pdf.min.js et "
                  + "pdf.worker.min.js dans le dépôt, ou connectez-vous une fois au réseau.";
 
+/* =================================================================== *
+ *  Écran d'accès — MESURE PROVISOIRE
+ *
+ *  Ce contrôle s'exécute dans le navigateur : le code de cette page est
+ *  téléchargé par quiconque ouvre l'URL, et le mot de passe peut donc
+ *  être contourné en lisant la source. Il écarte le passant qui tombe
+ *  sur l'adresse ; il NE PROTÈGE PAS les données.
+ *
+ *  La protection réelle viendra de l'authentification Supabase : tant
+ *  qu'elle n'est pas en place, considérez les signalements comme
+ *  accessibles à qui détient la clé de partage.
+ *
+ *  Changer le mot de passe : coller dans la console du navigateur
+ *    crypto.subtle.digest('SHA-256', new TextEncoder().encode('leadwood:'+'NOUVEAU'))
+ *      .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+ *  puis remplacer GATE_HASH ci-dessous par la valeur affichée.
+ *  Mettre GATE_HASH à "" désactive complètement cet écran.
+ * =================================================================== */
+const GATE_SALT = "leadwood:";
+const GATE_HASH = "b7838bdcc707e9a01070b6a81c61d578e650d54f8423d3f672c96ad089342f5a"; // « leadwood »
+const K_GATE = "lw.gate.v1";
+
+async function sha256(txt) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function gate() {
+  if (!GATE_HASH) return Promise.resolve();
+  try { if (localStorage.getItem(K_GATE) === GATE_HASH) return Promise.resolve(); } catch (e) {}
+  const box = document.getElementById("gate");
+  box.hidden = false;
+  setTimeout(() => document.getElementById("gatePass").focus(), 120);
+  return new Promise((resolve) => {
+    const tryPass = async () => {
+      const input = document.getElementById("gatePass");
+      let ok = false;
+      try { ok = (await sha256(GATE_SALT + input.value)) === GATE_HASH; } catch (e) {}
+      if (ok) {
+        try { localStorage.setItem(K_GATE, GATE_HASH); } catch (e) {}
+        box.hidden = true;
+        resolve();
+      } else {
+        document.getElementById("gateErr").hidden = false;
+        input.value = ""; input.focus();
+      }
+    };
+    document.getElementById("gateGo").addEventListener("click", tryPass);
+    document.getElementById("gatePass").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") tryPass();
+    });
+  });
+}
+
 /* ---------------------------- Référentiel --------------------------- */
 const ANIMALS = [
   { id:"lion",      nom:"Lion",       e:"🦁", c:"#C8842B" },
@@ -539,6 +642,37 @@ async function idbDel(key) {
    Elle n'est pas recopiée dans IndexedDB : le service worker la garde en
    cache pour le hors-ligne, et une nouvelle version publiée remplace
    l'ancienne au prochain changement de VERSION dans sw.js. */
+/* Carte rangée dans Supabase Storage (bucket « cartes »), accessible aux
+   seuls comptes connectés. Une copie est gardée sur l'appareil pour que
+   la carte reste disponible hors réseau. */
+async function fetchStorageMap() {
+  if (!syncOn() || !loggedIn()) return null;
+  try {
+    const h = await heads();
+    delete h["Content-Type"];
+    const r = await fetch(base() + "/storage/v1/object/cartes/carte.pdf", { headers:h });
+    if (!r.ok) throw new Error(r.status);
+    const buf = await r.arrayBuffer();
+    if (!isPdf(buf)) throw new Error("pas un pdf");
+    idbPut("map-remote", buf).catch(() => {});
+    return buf;
+  } catch (e) {
+    try { return await idbGet("map-remote"); } catch (e2) { return null; }
+  }
+}
+function isPdf(buf) {
+  const sig = String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 5)));
+  return sig === "%PDF-";
+}
+
+// Après une connexion faite depuis l'écran d'accueil, la carte rangée dans
+// Supabase devient accessible : on la charge sans attendre un rechargement.
+async function loadMapAfterLogin() {
+  if (S.rendered) return;
+  const buf = await fetchStorageMap();
+  if (buf) { S.mapSource = "supabase"; await enterMap(buf); }
+}
+
 async function fetchBundledMap() {
   try {
     const r = await fetch("carte.pdf");
@@ -546,8 +680,7 @@ async function fetchBundledMap() {
     const buf = await r.arrayBuffer();
     // Un hébergeur qui renvoie une page d'erreur en 200 nous donnerait du
     // HTML : on vérifie la signature du fichier plutôt que l'en-tête.
-    const sig = String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 5)));
-    return sig === "%PDF-" ? buf : null;
+    return isPdf(buf) ? buf : null;
   } catch (e) { return null; }
 }
 
@@ -651,6 +784,8 @@ $("pdfInput").addEventListener("change", async (e) => {
   } catch (err) { toast("Ce fichier ne peut pas être lu comme PDF."); }
 });
 ["bN","bS","bW","bE"].forEach(id => $(id).addEventListener("input", checkAspect));
+
+$("setupSync").addEventListener("click", openSync);
 
 $("startBtn").addEventListener("click", async () => {
   const v = readBounds();
@@ -943,7 +1078,8 @@ function addSighting(lat, lng, acc) {
   const rec = {
     id: uid(), animal:S.animal, ts:now,
     lat:+lat.toFixed(6), lng:+lng.toFixed(6), acc:acc ? Math.round(acc) : null,
-    author:(sync && sync.author) || null, deleted:false, upd:now, sync:"pending"
+    author:myName(), author_id:(me() && me().id) || null,
+    deleted:false, upd:now, sync:"pending"
   };
   sightings.unshift(rec);
   lsSet(K_SIGHT, sightings);
@@ -1088,13 +1224,14 @@ function openPopup(id) {
       <div class="acts">
         <button data-a="go">Centrer</button>
         <button data-a="share">Partager</button>
-        <button data-a="del" class="del">Supprimer</button>
+        ${mine(s) ? '<button data-a="del" class="del">Supprimer</button>' : ""}
       </div>
     </div>
     <button class="x" data-a="close" aria-label="Fermer">✕</button>`;
   p.hidden = false;
   p.querySelector('[data-a="close"]').addEventListener("click", closePopup);
-  p.querySelector('[data-a="del"]').addEventListener("click", () => removeSighting(s.id));
+  const del = p.querySelector('[data-a="del"]');
+  if (del) del.addEventListener("click", () => removeSighting(s.id));
   p.querySelector('[data-a="share"]').addEventListener("click", () => share(s));
   p.querySelector('[data-a="go"]').addEventListener("click", () => {
     const q = geoToXY(s.lat, s.lng); setFollow(false); centerOn(q.x, q.y, Math.max(S.k, S.fitK * 4));
@@ -1211,7 +1348,7 @@ function openSettings() {
     <div class="field">
       <span class="label">Partage entre véhicules</span>
       <div class="menu">
-        <button id="goSync"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6"/><path d="M4 18v-4h4M20 6v4h-4"/></svg>${syncOn() ? "Partage actif" : "Configurer le partage"}<span class="sub">${syncOn() ? esc(sync.author || "sans nom") : "Supabase"}</span></button>
+        <button id="goSync"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6"/><path d="M4 18v-4h4M20 6v4h-4"/></svg>${syncOn() ? "Partage actif" : "Configurer le partage"}<span class="sub">${syncOn() ? esc(myName() || "sans nom") : "Supabase"}</span></button>
       </div>
     </div>
     <div class="field">
@@ -1284,12 +1421,19 @@ function openSettings() {
   });
   $("wipe").addEventListener("click", () => {
     const n = known().length;
+    const nMine = known().filter(mine).length;
     if (!confirm(syncOn()
-      ? `Supprimer les ${n} signalements — y compris chez les autres véhicules ?`
+      ? (authRequired()
+          ? `Supprimer vos ${nMine} signalements chez tout le monde ? Ceux des autres véhicules resteront.`
+          : `Supprimer les ${n} signalements — y compris chez les autres véhicules ?`)
       : `Supprimer les ${n} signalements ?`)) return;
     if (syncOn()) {
       const now = new Date().toISOString();
-      sightings = sightings.map(s => Object.assign({}, s, { deleted:true, upd:now, sync:"pending" }));
+      // On ne marque que ce qu'on a le droit de modifier : une ligne d'un
+      // autre véhicule serait refusée et bloquerait toute la file.
+      sightings = sightings.map(s => mine(s)
+        ? Object.assign({}, s, { deleted:true, upd:now, sync:"pending" })
+        : s);
       syncCycle(true);
     } else { sightings = []; }
     lsSet(K_SIGHT, sightings);
@@ -1377,35 +1521,134 @@ $("sync").addEventListener("click", openSync);
  *  réseau. La relève se fait par sondage (12 s) plutôt que par
  *  WebSocket : en brousse, une connexion permanente tombe sans arrêt.
  * =================================================================== */
-const K_SYNC = "lw.sync.v1", K_CURSOR = "lw.sync.cursor";
-let sync = lsGet(K_SYNC, null);          // { url, key, author }
+const K_SYNC = "lw.sync.v1", K_CURSOR = "lw.sync.cursor", K_SESSION = "lw.session.v1";
+let sync = lsGet(K_SYNC, null);          // { url, key, author, auth }
 let cursor = lsGet(K_CURSOR, null);
+let session = lsGet(K_SESSION, null);    // { access_token, refresh_token, expires_at, user }
 let syncTimer = null, syncing = false, lastErr = null;
 
 function syncOn() { return !!(sync && sync.url && sync.key); }
-function api(path) { return sync.url.replace(/\/+$/, "") + "/rest/v1/" + path; }
-function heads(extra) {
+function base() { return sync.url.replace(/\/+$/, ""); }
+function api(path) { return base() + "/rest/v1/" + path; }
+
+/* ------------------------------ Comptes ----------------------------- */
+function loggedIn() { return !!(session && session.access_token); }
+function me() { return (session && session.user) || null; }
+function myName() {
+  const u = me();
+  if (!u) return (sync && sync.author) || null;
+  return (u.user_metadata && u.user_metadata.vehicule) || u.email || null;
+}
+function authRequired() { return !!(sync && sync.auth); }
+
+function setSession(d) {
+  session = {
+    access_token:d.access_token,
+    refresh_token:d.refresh_token,
+    expires_at:d.expires_at || (Math.floor(Date.now() / 1000) + (d.expires_in || 3600)),
+    user:d.user || (session && session.user) || null
+  };
+  lsSet(K_SESSION, session);
+}
+function signOut(silent) {
+  session = null; lsSet(K_SESSION, null);
+  if (!silent) toast("Déconnecté.");
+  setSync();
+  if (authRequired()) showLogin();
+}
+
+// Le jeton d'accès est court (une heure) : on le renouvelle avant qu'il
+// n'expire. Un échec réseau ne déconnecte pas — on réessaiera plus tard ;
+// seul un refus explicite du serveur invalide la session.
+let refreshing = null;
+
+async function ensureToken() {
+  if (!loggedIn()) return null;
+  const now = Math.floor(Date.now() / 1000);
+  if (session.expires_at && session.expires_at - 60 > now) return session.access_token;
+  if (!session.refresh_token) { signOut(true); return null; }
+
+  // Un seul rafraîchissement à la fois. Supabase invalide le jeton de
+  // rafraîchissement dès qu'il a servi : deux appels simultanés — cas
+  // courant, l'envoi et la relève partant ensemble — se détruiraient
+  // mutuellement et déconnecteraient le guide sans raison apparente.
+  if (!refreshing) {
+    refreshing = (async () => {
+      try {
+        const r = await fetch(base() + "/auth/v1/token?grant_type=refresh_token", {
+          method:"POST",
+          headers:{ apikey:sync.key, "Content-Type":"application/json" },
+          body:JSON.stringify({ refresh_token:session.refresh_token })
+        });
+        if (r.status >= 400 && r.status < 500) { signOut(true); return null; }
+        if (!r.ok) return null;
+        setSession(await r.json());
+        return session.access_token;
+      } catch (e) {
+        return null;                     // hors ligne : on garde la session
+      } finally {
+        refreshing = null;
+      }
+    })();
+  }
+  return refreshing;
+}
+
+async function signIn(email, password) {
+  const r = await fetch(base() + "/auth/v1/token?grant_type=password", {
+    method:"POST",
+    headers:{ apikey:sync.key, "Content-Type":"application/json" },
+    body:JSON.stringify({ email:email.trim().toLowerCase(), password })
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const msg = (d.error_description || d.msg || d.message || "").toLowerCase();
+    if (msg.indexOf("credential") >= 0 || msg.indexOf("invalid") >= 0) {
+      throw new Error("Identifiant ou mot de passe incorrect.");
+    }
+    if (msg.indexOf("confirm") >= 0) {
+      throw new Error("Ce compte n'est pas confirmé. Validez-le depuis le tableau de bord Supabase.");
+    }
+    throw new Error("Connexion refusée par le serveur.");
+  }
+  setSession(d);
+  return session;
+}
+
+async function heads(extra) {
   const h = { "apikey": sync.key, "Content-Type": "application/json" };
-  // Les clés historiques sont des JWT (« eyJ… ») et passent aussi en Bearer.
-  // Les nouvelles clés « publishable » (sb_publishable_…) n'en sont pas :
-  // les envoyer en Bearer ferait échouer l'authentification.
-  if (/^eyJ/.test(sync.key)) h["Authorization"] = "Bearer " + sync.key;
+  const tok = await ensureToken();
+  if (tok) h["Authorization"] = "Bearer " + tok;
+  // Sans compte, on retombe sur la clé partagée. Les clés historiques sont
+  // des JWT (« eyJ… ») et passent en Bearer ; les nouvelles clés
+  // « publishable » n'en sont pas et ne doivent pas y être mises.
+  else if (/^eyJ/.test(sync.key)) h["Authorization"] = "Bearer " + sync.key;
   return Object.assign(h, extra || {});
 }
 
 function toRemote(s) {
-  return {
+  const r = {
     id:s.id, animal:s.animal, ts:s.ts, lat:s.lat, lng:s.lng,
     acc:s.acc == null ? null : s.acc, author:s.author || null,
     deleted:!!s.deleted, updated_at:s.upd || s.ts
   };
+  if (s.author_id) r.author_id = s.author_id;
+  return r;
 }
 function fromRemote(r) {
   return {
     id:r.id, animal:r.animal, ts:r.ts, lat:+r.lat, lng:+r.lng,
     acc:r.acc == null ? null : +r.acc, author:r.author || null,
+    author_id:r.author_id || null,
     deleted:!!r.deleted, upd:r.updated_at || r.ts, sync:"ok"
   };
+}
+// Un signalement d'un autre véhicule ne peut pas être modifié : la
+// politique RLS le refuserait et bloquerait toute la file d'envoi.
+function mine(s) {
+  if (!authRequired()) return true;
+  if (!s.author_id) return true;
+  return !!(me() && s.author_id === me().id);
 }
 
 async function syncTest(url, key) {
@@ -1413,14 +1656,18 @@ async function syncTest(url, key) {
   const hh = { apikey:key };
   if (/^eyJ/.test(key)) hh.Authorization = "Bearer " + key;
   const res = await fetch(u, { headers:hh });
-  if (res.status === 200) return { ok:true };
-  if (res.status === 401 || res.status === 403) return { ok:false, msg:"Clé refusée : vérifiez la clé « anon public »." };
+  if (res.status === 200) return { ok:true, auth:false };
+  // 401 avec une clé valide = la table n'est ouverte qu'aux comptes
+  // authentifiés. Ce n'est pas une erreur : c'est le mode sécurisé.
+  if (res.status === 401) return { ok:true, auth:true };
+  if (res.status === 403) return { ok:false, msg:"Accès refusé : vérifiez la clé et les politiques RLS." };
   if (res.status === 404) return { ok:false, msg:"Table « sightings » introuvable : exécutez le script SQL dans Supabase." };
   return { ok:false, msg:"Réponse inattendue du serveur (" + res.status + ")." };
 }
 
 async function syncCycle(force) {
   if (!syncOn() || syncing) return;
+  if (authRequired() && !loggedIn()) { setSync(); return; }
   if (!navigator.onLine && !force) { setSync(); return; }
   syncing = true;
   try {
@@ -1429,9 +1676,10 @@ async function syncCycle(force) {
     if (out.length) {
       const res = await fetch(api("sightings"), {
         method:"POST",
-        headers:heads({ "Prefer":"resolution=merge-duplicates,return=minimal" }),
+        headers:await heads({ "Prefer":"resolution=merge-duplicates,return=minimal" }),
         body:JSON.stringify(out)
       });
+      if (res.status === 401) return needLogin();
       if (!res.ok) throw new Error("envoi " + res.status + " " + (await res.text()).slice(0, 120));
       const sent = new Set(out.map(o => o.id));
       sightings.forEach(s => { if (sent.has(s.id)) s.sync = "ok"; });
@@ -1442,7 +1690,8 @@ async function syncCycle(force) {
     const since = cursor || new Date(Date.now() - 7 * 864e5).toISOString();
     const q = "sightings?select=*&updated_at=gt." + encodeURIComponent(since)
             + "&order=updated_at.asc&limit=500";
-    const res2 = await fetch(api(q), { headers:heads() });
+    const res2 = await fetch(api(q), { headers:await heads() });
+    if (res2.status === 401) return needLogin();
     if (!res2.ok) throw new Error("relève " + res2.status);
     const rows = await res2.json();
     let changed = false;
@@ -1482,7 +1731,8 @@ function setSync() {
   const wait = sightings.filter(s => s.sync !== "ok" && !s.remoteOnly).length;
   let cls = "local", txt = "Local";
   if (syncOn()) {
-    if (!navigator.onLine) { cls = "wait"; txt = wait ? wait + " en attente" : "Hors ligne"; }
+    if (authRequired() && !loggedIn()) { cls = "error"; txt = "Connexion requise"; }
+    else if (!navigator.onLine) { cls = "wait"; txt = wait ? wait + " en attente" : "Hors ligne"; }
     else if (wait) { cls = "wait"; txt = wait + " en attente"; }
     else if (lastErr) { cls = "error"; txt = "Partage en erreur"; }
     else { cls = "ok"; txt = "Partagé"; }
@@ -1500,6 +1750,62 @@ function startSync() {
 window.addEventListener("online", () => syncCycle(true));
 window.addEventListener("offline", setSync);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncCycle(true); });
+
+/* -------------------------- Écran de connexion ---------------------- */
+let loginResolve = null;
+
+function showLogin() {
+  const box = $("login");
+  if (!box.hidden) return;
+  box.hidden = false;
+  $("loginErr").hidden = true;
+  $("loginEmail").value = (me() && me().email) || "";
+  setTimeout(() => { $((me() && me().email) ? "loginPass" : "loginEmail").focus(); }, 120);
+}
+function endLogin(ok) {
+  $("login").hidden = true;
+  const r = loginResolve; loginResolve = null;
+  if (r) r(ok);
+}
+function waitLogin() {
+  showLogin();
+  return new Promise((res) => { loginResolve = res; });
+}
+function needLogin() {
+  if (!sync.auth) { sync.auth = true; lsSet(K_SYNC, sync); }
+  session = null; lsSet(K_SESSION, null);
+  setSync();
+  showLogin();
+}
+
+(function bindLogin() {
+  const go = async () => {
+    const btn = $("loginGo");
+    btn.disabled = true; btn.textContent = "Connexion…";
+    try {
+      await signIn($("loginEmail").value, $("loginPass").value);
+      if (!sync.auth) { sync.auth = true; lsSet(K_SYNC, sync); }
+      $("loginPass").value = "";
+      endLogin(true);
+      toast("Connecté — " + (myName() || ""));
+      setSync(); startSync();
+      loadMapAfterLogin();
+    } catch (e) {
+      $("loginErr").textContent = e.message;
+      $("loginErr").hidden = false;
+      $("loginPass").value = "";
+    } finally { btn.disabled = false; btn.textContent = "Se connecter"; }
+  };
+  $("loginGo").addEventListener("click", go);
+  $("loginPass").addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  $("loginSkip").addEventListener("click", () => {
+    // L'app reste utilisable seule : on coupe le partage sur cet appareil.
+    sync = null; lsSet(K_SYNC, null);
+    clearInterval(syncTimer);
+    endLogin(false); setSync();
+    toast("Partage désactivé sur cet appareil.");
+  });
+})();
 
 /* ------------------- Écran de partage (réglages) -------------------- */
 const SQL = `create table if not exists sightings (
@@ -1526,11 +1832,23 @@ function openSync() {
   openSheet("Partage entre véhicules", syncOn() ? "actif" : "inactif");
   const s = sync || { url:"", key:"", author:"" };
   $("sheetBody").innerHTML = `
+    ${authRequired() ? `
+    <div class="field">
+      <span class="label">Compte</span>
+      <div class="pos-card">
+        <div>
+          <div class="coords">${esc(myName() || "non connecté")}</div>
+          <div class="acc">${loggedIn() ? esc((me() && me().email) || "") : "Connectez-vous pour rejoindre le partage"}</div>
+        </div>
+        <button type="button" id="syAuth">${loggedIn() ? "Déconnexion" : "Connexion"}</button>
+      </div>
+      <p class="about">Les comptes se créent et se désactivent depuis le tableau de bord Supabase, section <strong>Authentication</strong>. Le nom du véhicule vient du champ <code>vehicule</code> des métadonnées du compte.</p>
+    </div>` : `
     <div class="field">
       <span class="label">Nom de ce véhicule</span>
       <input class="inp" type="text" id="syAuthor" placeholder="Land Cruiser 2 — Jaco" value="${esc(s.author)}">
-      <p class="about">Affiché sur chaque repère que vous postez, pour que les autres sachent qui a vu l'animal.</p>
-    </div>
+      <p class="about">Affiché sur chaque repère que vous postez, pour que les autres sachent qui a vu l'animal. Non vérifié : tant que les comptes ne sont pas activés, chacun saisit ce qu'il veut.</p>
+    </div>`}
     <div class="field">
       <span class="label">Projet Supabase</span>
       <input class="inp" type="text" id="syUrl" placeholder="https://xxxxxxxx.supabase.co" value="${esc(s.url)}" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -1546,7 +1864,9 @@ function openSync() {
       <div class="menu">
         <button id="syLink"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Copier le lien de configuration</button>
       </div>
-      <p class="about">Ce lien contient le projet et la clé : envoyé à un guide, il configure son téléphone en une tape. À ne pas publier en ligne.</p>
+      <p class="about">${authRequired()
+        ? "Ce lien configure le téléphone du guide ; il devra ensuite se connecter avec son propre compte. La clé seule ne donne accès à rien."
+        : "Ce lien contient le projet et la clé : envoyé à un guide, il configure son téléphone en une tape. À ne pas publier en ligne."}</p>
     </div>` : ""}
     <div class="field">
       <span class="label">Script à exécuter une fois dans Supabase</span>
@@ -1558,8 +1878,15 @@ function openSync() {
       écrire. Si elle circule au-delà de votre équipe, régénérez-la depuis Supabase et reconfigurez les téléphones.
     </p>`;
 
+  const authBtn = $("syAuth");
+  if (authBtn) authBtn.addEventListener("click", () => {
+    if (loggedIn()) { signOut(); closeSheet(); showLogin(); }
+    else { closeSheet(); showLogin(); }
+  });
+
   $("syGo").addEventListener("click", async () => {
-    const url = $("syUrl").value.trim(), key = $("syKey").value.trim(), author = $("syAuthor").value.trim();
+    const url = $("syUrl").value.trim(), key = $("syKey").value.trim();
+    const author = $("syAuthor") ? $("syAuthor").value.trim() : (sync && sync.author) || "";
     if (!/^https?:\/\/.+/.test(url) || key.length < 20) { toast("URL du projet ou clé incomplète."); return; }
     $("syGo").textContent = "Vérification…"; $("syGo").disabled = true;
     let r;
@@ -1567,10 +1894,16 @@ function openSync() {
     catch (e) { r = { ok:false, msg:"Serveur injoignable : vérifiez l'URL et le réseau." }; }
     $("syGo").disabled = false;
     if (!r.ok) { $("syGo").textContent = "Activer le partage"; toast(r.msg); return; }
-    sync = { url, key, author };
+    sync = { url, key, author, auth:!!r.auth };
     lsSet(K_SYNC, sync);
     sightings.forEach(s => { if (!s.author) s.author = author; s.sync = "pending"; });
     lsSet(K_SIGHT, sightings);
+    if (r.auth && !loggedIn()) {
+      closeSheet();
+      toast("Ce projet demande un compte.");
+      showLogin();
+      return;
+    }
     startSync();
     openSync();
     toast("Partage activé. Vos signalements partent vers les autres véhicules.");
@@ -1660,10 +1993,19 @@ startSync();
 setInterval(() => { if (S.rendered) { drawOverlay(); updateCount(); } }, 60000);
 
 (async function boot() {
+  await gate();
+  // Comptes exigés par le serveur : on se connecte avant de chercher la
+  // carte, qui vit elle aussi derrière l'authentification.
+  if (syncOn() && authRequired() && !loggedIn()) await waitLogin();
+
   let buf = null;
   try { buf = await idbGet("map"); } catch (e) {}       // carte importée sur cet appareil
   if (buf) { S.mapSource = "import"; }
-  else {
+  if (!buf) {
+    buf = await fetchStorageMap();                       // carte rangée dans Supabase
+    if (buf) S.mapSource = "supabase";
+  }
+  if (!buf) {
     buf = await fetchBundledMap();                       // carte livrée avec l'app
     if (buf) S.mapSource = "depot";
   }
