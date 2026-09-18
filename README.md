@@ -156,6 +156,9 @@ l'animal, et les suppressions se propagent.
 1. Créer un compte sur [supabase.com](https://supabase.com) — l'offre gratuite suffit largement.
 2. *New project* : nom au choix, mot de passe de base de données au choix (il ne servira pas ici),
    région **eu-central** ou **af-south** selon la localisation.
+   Dans la section *Security* : laisser **Enable Data API** coché (l'application passe par cette
+   API — décoché, rien ne fonctionne). Les deux autres cases sont indifférentes : le script
+   accorde les privilèges explicitement et active RLS lui-même.
 3. Une fois le projet prêt : menu **SQL Editor** → *New query* → coller le contenu de
    `supabase.sql` → **Run**.
 4. Menu **Settings → API** : relever **Project URL** (`https://xxxx.supabase.co`) et la clé

@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Leadwood Tracker</title>
+<meta name="description" content="Signalement des animaux en temps réel sur la carte de la réserve.">
+<meta name="theme-color" content="#1D9E75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Leadwood">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* =================================================================== *
+ *  Leadwood Tracker
+ * =================================================================== */
+:root{
+  --sand:#F2EEE4;
+  --surface:#FFFFFF;
+  --surface-2:#E9E4D6;
+  --ink:#22201A;
+  --ink-soft:#57513F;
+  --ink-mute:#847C66;
+  --line:#DDD6C4;
+  --green:#1D9E75;
+  --green-deep:#15795A;
+  --ochre:#C8842B;
+  --clay:#B4553A;
+  --sky:#378ADD;
+  --shadow:0 2px 6px rgba(34,32,26,.09), 0 12px 28px rgba(34,32,26,.11);
+  --shadow-sm:0 1px 3px rgba(34,32,26,.14);
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --f-ui:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  --f-dis:"Zilla Slab",Georgia,"Times New Roman",serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --sand:#14150F; --surface:#1D1F17; --surface-2:#282A20;
+    --ink:#EDEADF; --ink-soft:#BCB6A3; --ink-mute:#8D8772; --line:#383A2D;
+    --green:#2FBF8E; --green-deep:#1D9E75; --ochre:#DCA04A; --clay:#D27053; --sky:#58A0EE;
+    --shadow:0 2px 6px rgba(0,0,0,.45), 0 12px 28px rgba(0,0,0,.5);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.55);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --sand:#14150F; --surface:#1D1F17; --surface-2:#282A20;
+  --ink:#EDEADF; --ink-soft:#BCB6A3; --ink-mute:#8D8772; --line:#383A2D;
+  --green:#2FBF8E; --green-deep:#1D9E75; --ochre:#DCA04A; --clay:#D27053; --sky:#58A0EE;
+  --shadow:0 2px 6px rgba(0,0,0,.45), 0 12px 28px rgba(0,0,0,.5);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--f-ui);font-size:15px;line-height:1.45;
+  color:var(--ink);background:var(--sand);
+  overflow:hidden;overscroll-behavior:none;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:5px}
+[hidden]{display:none!important}
+#app{display:flex;flex-direction:column;height:100dvh}
+
+/* ----------------------------- Accueil ----------------------------- */
+#setup{flex:1;overflow-y:auto;padding:calc(var(--safe-t) + 22px) 20px calc(var(--safe-b) + 24px);display:flex;flex-direction:column;gap:16px}
+.hero{text-align:center;padding:10px 0 4px}
+.hero .mark{width:58px;height:58px;border-radius:17px;background:var(--green);display:grid;place-items:center;margin:0 auto 12px;box-shadow:var(--shadow-sm)}
+.hero .mark svg{width:33px;height:33px;fill:#fff}
+.hero h1{font-family:var(--f-dis);font-size:27px;font-weight:700;letter-spacing:-.015em;line-height:1.1}
+.hero p{font-size:13.5px;color:var(--ink-mute);margin-top:5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:16px}
+.card h3{
+  font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-mute);margin-bottom:11px;
+}
+.drop{
+  border:2px dashed var(--line);border-radius:11px;padding:24px 16px;text-align:center;
+  cursor:pointer;display:block;transition:border-color .15s,background .15s;
+}
+.drop:hover{background:var(--surface-2)}
+.drop.ok{border-color:var(--green);background:color-mix(in srgb,var(--green) 10%,transparent);border-style:solid}
+.drop .big{font-size:26px;display:block;margin-bottom:8px}
+.drop .t{font-size:13px;color:var(--ink-mute)}
+.drop.ok .t{color:var(--green-deep);font-weight:600}
+.bounds{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.bounds label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:4px}
+.bounds input{
+  width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface-2);font-size:13px;font-variant-numeric:tabular-nums;
+}
+.bounds input:focus{outline:none;border-color:var(--green)}
+.hint{font-size:12.5px;color:var(--ink-mute);line-height:1.5;margin-top:10px}
+.inp{
+  width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface-2);font-size:14px;
+}
+.inp:focus{outline:none;border-color:var(--green)}
+.hint strong{color:var(--ink-soft)}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.45;margin-top:10px;padding:9px 11px;border-radius:10px}
+.check.ok{background:color-mix(in srgb,var(--green) 12%,transparent);color:var(--green-deep)}
+.check.warn{background:color-mix(in srgb,var(--ochre) 16%,transparent);color:var(--ochre)}
+:root[data-theme="dark"] .check.ok,:root:not([data-theme="light"]) .check.ok{color:var(--green)}
+.btn{
+  width:100%;min-height:52px;border-radius:14px;background:var(--green);color:#fff;
+  font-weight:700;font-size:16px;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:0 4px 14px rgba(29,158,117,.32);
+}
+.btn:active{background:var(--green-deep)}
+.btn:disabled{background:var(--surface-2);color:var(--ink-mute);box-shadow:none;cursor:default}
+.btn-ghost{
+  min-height:48px;padding:0 18px;border-radius:14px;border:1px solid var(--line);
+  background:var(--surface);font-weight:600;color:var(--ink-soft);
+}
+
+/* ------------------------------ Carte ------------------------------ */
+#screen{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  padding:calc(var(--safe-t) + 9px) 12px 9px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+}
+#topbar .name{font-family:var(--f-dis);font-size:16px;font-weight:700;letter-spacing:-.01em}
+.badge{
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid;
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+}
+.badge .led{width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:var(--green-deep);border-color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)}
+.badge.searching{color:var(--ochre);border-color:var(--ochre);background:color-mix(in srgb,var(--ochre) 14%,transparent)}
+.badge.error,.badge.out{color:var(--clay);border-color:var(--clay);background:color-mix(in srgb,var(--clay) 13%,transparent)}
+.badge.local{color:var(--ink-mute);border-color:var(--line);background:var(--surface-2)}
+.badge.wait{color:var(--ochre);border-color:var(--ochre);background:color-mix(in srgb,var(--ochre) 14%,transparent)}
+#topbar .name{flex:0 0 auto}
+#sync{cursor:pointer}
+:root[data-theme="dark"] .badge.ok,:root:not([data-theme="light"]) .badge.ok{color:var(--green)}
+#topbar .sp{flex:1}
+.tb-btn{
+  width:36px;height:36px;border-radius:11px;border:1px solid var(--line);background:var(--surface-2);
+  display:grid;place-items:center;color:var(--ink-soft);position:relative;
+}
+.tb-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tb-btn.on{background:var(--green);color:#fff;border-color:transparent}
+.tb-btn .n{
+  position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;
+  background:var(--clay);color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;
+  font-variant-numeric:tabular-nums;
+}
+
+#maparea{
+  flex:1;position:relative;overflow:hidden;background:var(--surface-2);
+  touch-action:none;cursor:grab;
+}
+#maparea.dragging{cursor:grabbing}
+#stage{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+#canvas{display:block;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+#overlay{position:absolute;inset:0;pointer-events:none}
+#overlay .hit{pointer-events:auto;cursor:pointer}
+#overlay .hit *{pointer-events:none}
+#overlay .hit .grab{pointer-events:auto}
+.gps-pulse{animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.22}50%{opacity:.07}}
+@media (prefers-reduced-motion:reduce){.gps-pulse{animation:none}}
+#loading{
+  position:absolute;inset:0;background:color-mix(in srgb,var(--sand) 88%,transparent);
+  display:grid;place-items:center;z-index:5;gap:10px;
+}
+.spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.map-tools{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:7px;z-index:4}
+.map-tools button{
+  width:40px;height:40px;border-radius:12px;background:var(--surface);border:1px solid var(--line);
+  box-shadow:var(--shadow-sm);display:grid;place-items:center;color:var(--ink-soft);font-weight:700;font-size:17px;
+}
+.map-tools button svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.map-tools button.on{color:var(--green);border-color:var(--green)}
+.scalebar{
+  position:absolute;left:10px;bottom:12px;z-index:4;font-size:10.5px;font-weight:700;
+  color:var(--ink-soft);background:color-mix(in srgb,var(--surface) 82%,transparent);
+  padding:3px 7px;border-radius:7px;border:1px solid var(--line);
+  font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px;
+}
+.scalebar i{display:block;height:6px;border:1px solid currentColor;border-top:0}
+
+/* ------------------------- Panneau du bas -------------------------- */
+#panel{
+  background:var(--surface);border-top:1px solid var(--line);flex-shrink:0;
+  padding:10px 12px calc(var(--safe-b) + 12px);
+}
+#grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(63px,1fr));gap:6px;
+  max-height:172px;overflow-y:auto;margin-bottom:10px;
+}
+.an{
+  display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 3px 7px;
+  border:2px solid var(--line);border-radius:11px;background:var(--surface-2);
+  min-width:0;transition:transform .08s;
+}
+.an:active{transform:scale(.94)}
+.an .e{font-size:21px;line-height:1}
+.an .n{
+  font-size:9.5px;font-weight:600;color:var(--ink-mute);text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;
+}
+.an[aria-pressed="true"]{border-color:var(--c,#1D9E75);background:color-mix(in srgb,var(--c,#1D9E75) 14%,var(--surface))}
+.an[aria-pressed="true"] .n{color:var(--ink)}
+
+/* ------------------------------ Cartes ----------------------------- */
+#popup{
+  position:absolute;left:10px;right:10px;bottom:10px;z-index:6;
+  background:var(--surface);border:1px solid var(--line);border-radius:15px;
+  box-shadow:var(--shadow);padding:13px 14px;display:flex;gap:12px;align-items:flex-start;
+}
+#popup .e{font-size:26px;line-height:1;flex:0 0 auto}
+#popup .m{flex:1;min-width:0}
+#popup h4{font-family:var(--f-dis);font-size:17px;font-weight:700;line-height:1.15}
+#popup .sub{font-size:12.5px;color:var(--ink-mute);font-variant-numeric:tabular-nums;margin-top:2px}
+#popup .acts{display:flex;gap:14px;margin-top:8px}
+#popup .acts button{font-size:13px;font-weight:700;color:var(--green)}
+#popup .acts button.del{color:var(--clay)}
+#popup .x{align-self:flex-start;color:var(--ink-mute);font-size:19px;line-height:1;padding:2px 4px}
+
+/* ----------------------------- Placement --------------------------- */
+#crosshair{position:absolute;inset:0;display:grid;place-items:center;z-index:5;pointer-events:none}
+#crosshair .c{width:54px;height:54px;border-radius:50%;border:2px solid var(--green);position:relative;background:color-mix(in srgb,var(--green) 12%,transparent)}
+#crosshair .c::before,#crosshair .c::after{content:"";position:absolute;background:var(--green)}
+#crosshair .c::before{left:50%;top:-11px;bottom:-11px;width:2px;transform:translateX(-1px)}
+#crosshair .c::after{top:50%;left:-11px;right:-11px;height:2px;transform:translateY(-1px)}
+#placebar{
+  position:absolute;left:10px;right:10px;top:10px;z-index:6;background:var(--ink);color:var(--sand);
+  border-radius:13px;padding:11px 13px;display:flex;align-items:center;gap:11px;box-shadow:var(--shadow);
+}
+#placebar p{font-size:13px;font-weight:600;line-height:1.3;flex:1}
+#placebar button{padding:8px 13px;border-radius:10px;font-size:13px;font-weight:700;flex:0 0 auto}
+#placebar .go{background:var(--sand);color:var(--ink)}
+#placebar .no{color:var(--sand);opacity:.75}
+
+/* ------------------------------ Sheet ------------------------------ */
+#scrim{position:fixed;inset:0;z-index:900;background:rgba(10,12,8,.45);opacity:0;transition:opacity .22s}
+#scrim.open{opacity:1}
+#sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--surface);
+  border-radius:20px 20px 0 0;box-shadow:0 -6px 30px rgba(0,0,0,.24);
+  max-height:88dvh;display:flex;flex-direction:column;
+  transform:translateY(102%);transition:transform .28s cubic-bezier(.22,.8,.3,1);
+  padding-bottom:var(--safe-b);
+}
+#sheet.open{transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){#sheet{transition:none}}
+.grip{padding:10px 0 4px;display:grid;place-items:center;touch-action:none;cursor:grab}
+.grip i{width:40px;height:4px;border-radius:2px;background:var(--line);display:block}
+.shead{padding:2px 18px 12px;display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--line)}
+.shead h2{font-family:var(--f-dis);font-size:20px;font-weight:700;letter-spacing:-.01em}
+.shead .r{margin-left:auto;font-size:12px;color:var(--ink-mute)}
+.sbody{overflow-y:auto;overflow-x:hidden;padding:16px 18px 20px;display:grid;gap:18px}
+.field{display:grid;gap:8px}
+.label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:600;color:var(--ink-soft)}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sand)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.stat{padding:12px;border-radius:12px;background:var(--surface-2)}
+.stat .v{font-family:var(--f-dis);font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.stat .k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);margin-top:4px}
+.rows{display:grid}
+.row-i{display:flex;gap:11px;align-items:center;padding:11px 3px;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.row-i:last-child{border-bottom:0}
+.row-i .e{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:18px;flex:0 0 auto;background:color-mix(in srgb,var(--c,#1D9E75) 15%,transparent)}
+.row-i .m{flex:1;min-width:0}
+.row-i .t{font-weight:700;font-size:14.5px;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.row-i .s{display:block;font-size:12.5px;color:var(--ink-mute);font-variant-numeric:tabular-nums;margin-top:1px}
+.pill{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--surface-2);color:var(--ink-mute)}
+.pill.live{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green-deep)}
+:root[data-theme="dark"] .pill.live,:root:not([data-theme="light"]) .pill.live{color:var(--green)}
+.menu{display:grid}
+.menu button{display:flex;align-items:center;gap:12px;padding:13px 3px;width:100%;text-align:left;border-bottom:1px solid var(--line);font-size:14.5px;font-weight:600}
+.menu button:last-child{border-bottom:0}
+.menu svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;color:var(--ink-mute);flex:0 0 auto}
+.menu .sub{margin-left:auto;font-size:12px;font-weight:500;color:var(--ink-mute)}
+.menu button.danger{color:var(--clay)}
+.about{font-size:12.5px;color:var(--ink-mute);line-height:1.5}
+.empty{text-align:center;padding:30px 12px;color:var(--ink-mute)}
+.empty .e{font-size:28px;display:block;margin-bottom:8px}
+.empty p{font-size:13.5px;max-width:34ch;margin:0 auto}
+
+/* ------------------------------ Toast ------------------------------ */
+#toast{
+  position:fixed;left:50%;bottom:calc(var(--panelH, 120px) + 18px);z-index:1200;
+  transform:translate(-50%,12px);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  background:var(--ink);color:var(--sand);padding:10px 16px;border-radius:11px;
+  font-size:13.5px;font-weight:600;box-shadow:var(--shadow);max-width:min(90vw,380px);text-align:center;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (min-width:760px){
+  #sheet{left:auto;right:16px;bottom:16px;width:400px;border-radius:20px;max-height:min(720px,86dvh)}
+  #setup{max-width:560px;margin:0 auto;width:100%}
+  #popup{left:auto;right:10px;width:330px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ========================= Écran d'accueil ======================== -->
+  <section id="setup">
+    <div class="hero">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 14.2c-2.6 0-5.4 1.8-5.4 4.1 0 1.6 1.4 2.4 3 2.4.9 0 1.7-.3 2.4-.3s1.5.3 2.4.3c1.6 0 3-.8 3-2.4 0-2.3-2.8-4.1-5.4-4.1Z"/><ellipse cx="6.2" cy="11" rx="2.1" ry="2.7"/><ellipse cx="17.8" cy="11" rx="2.1" ry="2.7"/><ellipse cx="9.6" cy="6.3" rx="1.9" ry="2.5"/><ellipse cx="14.4" cy="6.3" rx="1.9" ry="2.5"/></svg>
+      </div>
+      <h1>Leadwood Tracker</h1>
+      <p>Signalez les animaux en temps réel</p>
+    </div>
+
+    <div class="card">
+      <h3>1 · Carte de la réserve</h3>
+      <label class="drop" id="drop">
+        <input type="file" id="pdfInput" accept="application/pdf,.pdf" hidden>
+        <span class="big" aria-hidden="true">🗺️</span>
+        <span class="t" id="dropText">Appuyez pour choisir le PDF de la réserve</span>
+      </label>
+      <p class="hint">La carte est conservée dans l'application : vous ne l'importerez qu'une seule fois, même hors réseau.</p>
+    </div>
+
+    <div class="card">
+      <h3>2 · Coins de la carte</h3>
+      <div class="bounds">
+        <div><label for="bN">Nord (lat. max)</label><input id="bN" type="text" inputmode="decimal"></div>
+        <div><label for="bS">Sud (lat. min)</label><input id="bS" type="text" inputmode="decimal"></div>
+        <div><label for="bW">Ouest (long. min)</label><input id="bW" type="text" inputmode="decimal"></div>
+        <div><label for="bE">Est (long. max)</label><input id="bE" type="text" inputmode="decimal"></div>
+      </div>
+      <div class="check" id="aspect" hidden></div>
+      <p class="hint">Ces quatre valeurs sont les coordonnées des <strong>bords</strong> du PDF, pas du contenu dessiné. Elles servent à convertir la position GPS en position sur la carte.</p>
+    </div>
+
+    <button class="btn" id="startBtn">Démarrer</button>
+  </section>
+
+  <!-- ============================= Carte ============================= -->
+  <section id="screen" hidden>
+    <header id="topbar">
+      <span class="name">Leadwood</span>
+      <span class="badge searching" id="gps"><span class="led"></span>GPS…</span>
+      <button class="badge local" id="sync" title="Partage entre véhicules"><span class="led"></span>Local</button>
+      <span class="sp"></span>
+      <button class="tb-btn" id="btnHist" aria-label="Historique des signalements">
+        <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+        <span class="n" id="liveCount" hidden>0</span>
+      </button>
+      <button class="tb-btn" id="btnSet" aria-label="Réglages">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg>
+      </button>
+    </header>
+
+    <div id="maparea">
+      <div id="stage">
+        <canvas id="canvas"></canvas>
+      </div>
+      <svg id="overlay"></svg>
+
+      <div id="loading" hidden><div class="spinner"></div></div>
+      <div id="crosshair" hidden><div class="c"></div></div>
+
+      <div id="placebar" hidden>
+        <p id="placeText">Amenez le repère sur le lieu de l'observation.</p>
+        <button class="no" id="placeNo">Annuler</button>
+        <button class="go" id="placeGo">Valider</button>
+      </div>
+
+      <div class="map-tools" id="tools">
+        <button id="btnFollow" aria-label="Centrer sur ma position">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
+        </button>
+        <button id="btnZoomIn" aria-label="Zoomer">+</button>
+        <button id="btnZoomOut" aria-label="Dézoomer">−</button>
+        <button id="btnFit" aria-label="Voir toute la carte">
+          <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+      </div>
+      <div class="scalebar" id="scale" hidden><i id="scaleBar"></i><span id="scaleTxt"></span></div>
+
+      <div id="popup" hidden></div>
+    </div>
+
+    <div id="panel">
+      <div id="grid" role="group" aria-label="Choix de l'animal"></div>
+      <button class="btn" id="reportBtn" disabled>Sélectionnez un animal</button>
+    </div>
+  </section>
+</div>
+
+<div id="scrim" hidden></div>
+<section id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="grip" id="grip"><i></i></div>
+  <div class="shead"><h2 id="sheetTitle">Titre</h2><span class="r" id="sheetR"></span></div>
+  <div class="sbody" id="sheetBody"></div>
+</section>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="importInput" accept="application/json,.json" hidden>
+<input type="file" id="pdfSwap" accept="application/pdf,.pdf" hidden>
+
+<script src="vendor/pdfjs/pdf.min.js"></script>
+<script>
+/* =================================================================== *
+ *  Leadwood Tracker — logique
+ *  Les signalements et la carte restent sur l'appareil.
+ * =================================================================== */
+(function () {
+"use strict";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js";
+
+/* ---------------------------- Référentiel --------------------------- */
+const ANIMALS = [
+  { id:"lion",      nom:"Lion",       e:"🦁", c:"#C8842B" },
+  { id:"leopard",   nom:"Léopard",    e:"🐆", c:"#B4553A" },
+  { id:"elephant",  nom:"Éléphant",   e:"🐘", c:"#6E7A80" },
+  { id:"rhino",     nom:"Rhinocéros", e:"🦏", c:"#5F6A6A" },
+  { id:"buffle",    nom:"Buffle",     e:"🐃", c:"#4E4438" },
+  { id:"guepard",   nom:"Guépard",    e:"🐅", c:"#D9A13B" },
+  { id:"girafe",    nom:"Girafe",     e:"🦒", c:"#C99A45" },
+  { id:"zebre",     nom:"Zèbre",      e:"🦓", c:"#6B7280" },
+  { id:"hippo",     nom:"Hippo",      e:"🦛", c:"#7C6A86" },
+  { id:"crocodile", nom:"Crocodile",  e:"🐊", c:"#4C7A3C" },
+  { id:"gnou",      nom:"Gnou",       e:"🐂", c:"#5A5348" },
+  { id:"impala",    nom:"Impala",     e:"🦌", c:"#A9762F" },
+  { id:"koudou",    nom:"Koudou",     e:"🫎", c:"#8A6A3E" },
+  { id:"hyene",     nom:"Hyène",      e:"🐺", c:"#7A6E55" },
+  { id:"lycaon",    nom:"Lycaon",     e:"🐕", c:"#9B6B3A" },
+  { id:"babouin",   nom:"Babouin",    e:"🐒", c:"#6F5B43" },
+  { id:"oiseau",    nom:"Oiseau",     e:"🦅", c:"#4F6470" },
+  { id:"autre",     nom:"Autre",      e:"🐾", c:"#1D9E75" }
+];
+const A = Object.fromEntries(ANIMALS.map(a => [a.id, a]));
+
+const DEFAULT_BOUNDS = { maxLat:-24.371180, minLng:30.900230, minLat:-24.470152, maxLng:30.995868 };
+const EXPIRY_CHOICES = [
+  { h:2,  nom:"2 h" }, { h:5, nom:"5 h" }, { h:12, nom:"12 h" }, { h:0, nom:"Sans" }
+];
+
+/* ------------------------------ Stockage ---------------------------- */
+const K_SIGHT = "lw.sightings.v1";
+const K_PREFS = "lw.prefs.v1";
+
+function lsGet(k, d) { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : d; } catch (e) { return d; } }
+function lsSet(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+  catch (e) { toast("Mémoire pleine : exportez puis effacez d'anciens signalements."); return false; }
+}
+
+let sightings = lsGet(K_SIGHT, []);
+let prefs = lsGet(K_PREFS, { bounds:DEFAULT_BOUNDS, expiryH:5, theme:"auto" });
+if (!prefs.bounds) prefs.bounds = DEFAULT_BOUNDS;
+if (prefs.expiryH === undefined) prefs.expiryH = 5;
+
+// La carte PDF vit dans IndexedDB : trop volumineuse pour localStorage.
+const DB = "leadwood", STORE = "files";
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbPut(key, val) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(val, key);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readonly");
+    const rq = tx.objectStore(STORE).get(key);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+
+/* -------------------------------- État ------------------------------ */
+const S = {
+  pdfW:0, pdfH:0, rendered:false,
+  k:1, tx:0, ty:0, fitK:1,
+  pos:null, acc:null, gps:"searching",
+  animal:null, follow:true,
+  placing:false, selected:null, pendingFile:null
+};
+let watchId = null;
+
+const $ = (id) => document.getElementById(id);
+const mapArea = $("maparea"), stage = $("stage"), canvas = $("canvas"), overlay = $("overlay");
+
+/* --------------------------- Géo ↔ carte ---------------------------- */
+function b() { return prefs.bounds; }
+function geoToXY(lat, lng) {
+  const B = b();
+  return {
+    x: ((lng - B.minLng) / (B.maxLng - B.minLng)) * S.pdfW,
+    y: ((B.maxLat - lat) / (B.maxLat - B.minLat)) * S.pdfH
+  };
+}
+function xyToGeo(x, y) {
+  const B = b();
+  return {
+    lat: B.maxLat - (y / S.pdfH) * (B.maxLat - B.minLat),
+    lng: B.minLng + (x / S.pdfW) * (B.maxLng - B.minLng)
+  };
+}
+function inBounds(lat, lng) {
+  const B = b();
+  return lat <= B.maxLat && lat >= B.minLat && lng >= B.minLng && lng <= B.maxLng;
+}
+function metersPerUnit() {                    // mètres par point PDF
+  const B = b(), mid = (B.maxLat + B.minLat) / 2;
+  const wm = (B.maxLng - B.minLng) * 111320 * Math.cos(mid * Math.PI / 180);
+  const hm = (B.maxLat - B.minLat) * 110574;
+  return ((wm / S.pdfW) + (hm / S.pdfH)) / 2;
+}
+function distance(a1, o1, a2, o2) {           // haversine, en mètres
+  const R = 6371000, r = Math.PI / 180;
+  const dLat = (a2 - a1) * r, dLng = (o2 - o1) * r;
+  const s = Math.sin(dLat/2)**2 + Math.cos(a1*r) * Math.cos(a2*r) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+function bearing(a1, o1, a2, o2) {
+  const r = Math.PI / 180;
+  const y = Math.sin((o2-o1)*r) * Math.cos(a2*r);
+  const x = Math.cos(a1*r)*Math.sin(a2*r) - Math.sin(a1*r)*Math.cos(a2*r)*Math.cos((o2-o1)*r);
+  const d = (Math.atan2(y, x) / r + 360) % 360;
+  return ["N","NE","E","SE","S","SO","O","NO"][Math.round(d / 45) % 8];
+}
+
+/* ------------------------------ Accueil ----------------------------- */
+function fillBounds() {
+  const B = b();
+  $("bN").value = B.maxLat; $("bS").value = B.minLat;
+  $("bW").value = B.minLng; $("bE").value = B.maxLng;
+}
+function readBounds() {
+  const n = (id) => parseFloat(String($(id).value).replace(",", "."));
+  const v = { maxLat:n("bN"), minLat:n("bS"), minLng:n("bW"), maxLng:n("bE") };
+  if (Object.values(v).some(x => !isFinite(x))) return null;
+  if (v.maxLat <= v.minLat || v.maxLng <= v.minLng) return null;
+  return v;
+}
+function checkAspect() {
+  const v = readBounds(), box = $("aspect");
+  if (!v || !S.pdfW) { box.hidden = true; return; }
+  const mid = (v.maxLat + v.minLat) / 2;
+  const geo = ((v.maxLng - v.minLng) * Math.cos(mid * Math.PI/180)) / (v.maxLat - v.minLat);
+  const pdf = S.pdfW / S.pdfH;
+  const ecart = Math.abs(pdf - geo) / geo;
+  box.hidden = false;
+  if (ecart < 0.08) {
+    box.className = "check ok";
+    box.innerHTML = `<span>✓</span><span>Les proportions du PDF correspondent à la zone décrite (écart ${(ecart*100).toFixed(0)} %). Le calage sera fidèle.</span>`;
+  } else {
+    box.className = "check warn";
+    box.innerHTML = `<span>⚠</span><span>Le PDF est ${(pdf/geo > 1 ? "plus large" : "plus étroit")} que la zone décrite (écart ${(ecart*100).toFixed(0)} %). Les positions seront décalées : vérifiez que les coordonnées correspondent bien aux bords de la page.</span>`;
+  }
+}
+
+$("pdfInput").addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  S.pendingFile = f;
+  $("drop").classList.add("ok");
+  $("dropText").innerHTML = "✅ " + esc(f.name) + " · " + Math.round(f.size / 1024) + " ko";
+  try {                                   // mesurer la page pour le contrôle de cohérence
+    const buf = await f.arrayBuffer();
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const vp = (await doc.getPage(1)).getViewport({ scale:1 });
+    S.pdfW = vp.width; S.pdfH = vp.height;
+    checkAspect();
+  } catch (err) { toast("Ce fichier ne peut pas être lu comme PDF."); }
+});
+["bN","bS","bW","bE"].forEach(id => $(id).addEventListener("input", checkAspect));
+
+$("startBtn").addEventListener("click", async () => {
+  const v = readBounds();
+  if (!v) { toast("Coordonnées incomplètes ou incohérentes."); return; }
+  if (!S.pendingFile) { toast("Choisissez d'abord le PDF de la réserve."); return; }
+  prefs.bounds = v; lsSet(K_PREFS, prefs);
+  const buf = await S.pendingFile.arrayBuffer();
+  await idbPut("map", buf).catch(() => toast("La carte n'a pas pu être mémorisée ; elle restera valable pour cette session."));
+  await enterMap(buf);
+});
+
+/* ------------------------------ La carte ---------------------------- */
+async function enterMap(buf) {
+  $("setup").hidden = true;
+  $("screen").hidden = false;
+  $("loading").hidden = false;
+  buildGrid();
+  try {
+    await renderPdf(buf);
+    fit();
+    startGPS();
+  } catch (e) {
+    $("loading").hidden = true;
+    toast("La carte n'a pas pu être affichée.");
+  }
+}
+
+async function renderPdf(buf) {
+  const doc = await pdfjsLib.getDocument({ data:new Uint8Array(buf.slice(0)) }).promise;
+  const page = await doc.getPage(1);
+  const vp1 = page.getViewport({ scale:1 });
+  S.pdfW = vp1.width; S.pdfH = vp1.height;
+
+  // Résolution : nette jusqu'à ~3× le zoom d'ensemble, plafonnée en mémoire.
+  const area = mapArea.getBoundingClientRect();
+  const fitK = Math.min(area.width / S.pdfW, area.height / S.pdfH) || 1;
+  let r = Math.min(fitK * 3 * (window.devicePixelRatio || 1), 6);
+  const MAXPX = 16e6;
+  if (S.pdfW * r * S.pdfH * r > MAXPX) r = Math.sqrt(MAXPX / (S.pdfW * S.pdfH));
+
+  const vp = page.getViewport({ scale:r });
+  canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+  canvas.style.width = S.pdfW + "px"; canvas.style.height = S.pdfH + "px";
+  await page.render({ canvasContext:canvas.getContext("2d", { alpha:false }), viewport:vp }).promise;
+  S.rendered = true;
+  $("loading").hidden = true;
+  $("scale").hidden = false;
+}
+
+/* --------------------------- Zoom & déplacement --------------------- */
+function applyTransform() {
+  stage.style.transform = `translate(${S.tx}px,${S.ty}px) scale(${S.k})`;
+  drawOverlay(); drawScale();
+}
+function fit() {
+  const a = mapArea.getBoundingClientRect();
+  S.fitK = Math.min(a.width / S.pdfW, a.height / S.pdfH);
+  S.k = S.fitK;
+  S.tx = (a.width - S.pdfW * S.k) / 2;
+  S.ty = (a.height - S.pdfH * S.k) / 2;
+  applyTransform();
+}
+function clampK(k) { return Math.max(S.fitK * 0.7, Math.min(S.fitK * 12, k)); }
+function zoomAt(sx, sy, factor) {
+  const k2 = clampK(S.k * factor);
+  const f = k2 / S.k;
+  S.tx = sx - (sx - S.tx) * f;
+  S.ty = sy - (sy - S.ty) * f;
+  S.k = k2;
+  clampPan(); applyTransform();
+}
+function clampPan() {
+  const a = mapArea.getBoundingClientRect();
+  const w = S.pdfW * S.k, h = S.pdfH * S.k, m = 60;
+  S.tx = Math.min(a.width - m, Math.max(m - w, S.tx));
+  S.ty = Math.min(a.height - m, Math.max(m - h, S.ty));
+}
+function centerOn(x, y, k) {
+  const a = mapArea.getBoundingClientRect();
+  if (k) S.k = clampK(k);
+  S.tx = a.width / 2 - x * S.k;
+  S.ty = a.height / 2 - y * S.k;
+  clampPan(); applyTransform();
+}
+
+(function gestures() {
+  const pts = new Map();
+  let start = null, moved = 0, lastTap = 0, tapMarker = null, captured = false;
+
+  mapArea.addEventListener("pointerdown", (e) => {
+    // Les boutons posés sur la carte doivent recevoir leur clic normalement :
+    // on ne suit pas ces pointeurs, et surtout on ne les capture pas.
+    if (e.target && e.target.closest && e.target.closest("#tools,#placebar,#popup")) return;
+    // La capture du pointeur redirigerait le « click » vers #maparea :
+    // on retient donc ici le repère touché plutôt que d'attendre un click.
+    if (pts.size === 0) {
+      const g = e.target && e.target.closest ? e.target.closest(".hit") : null;
+      tapMarker = g ? g.dataset.id : null;
+    }
+    pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    moved = 0;
+    if (pts.size === 1) {
+      start = { x:e.clientX, y:e.clientY, tx:S.tx, ty:S.ty, t:Date.now() };
+      mapArea.classList.add("dragging");
+    } else if (pts.size === 2) {
+      const [p, q] = [...pts.values()];
+      start = {
+        d:Math.hypot(p.x - q.x, p.y - q.y), k:S.k,
+        cx:(p.x + q.x) / 2, cy:(p.y + q.y) / 2, tx:S.tx, ty:S.ty
+      };
+    }
+  });
+
+  mapArea.addEventListener("pointermove", (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    const r = mapArea.getBoundingClientRect();
+    if (pts.size === 1 && start && start.tx !== undefined && start.d === undefined) {
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      moved = Math.max(moved, Math.hypot(dx, dy));
+      S.tx = start.tx + dx; S.ty = start.ty + dy;
+      if (moved > 8) {
+        setFollow(false);
+        // On ne capture qu'une fois le déplacement engagé : le doigt peut
+        // alors sortir de la carte sans interrompre le glissement.
+        if (!captured) { try { mapArea.setPointerCapture(e.pointerId); captured = true; } catch (err) {} }
+      }
+      clampPan(); applyTransform();
+    } else if (pts.size === 2 && start && start.d) {
+      const [p, q] = [...pts.values()];
+      const d = Math.hypot(p.x - q.x, p.y - q.y);
+      const k2 = clampK(start.k * (d / start.d));
+      const f = k2 / start.k;
+      const cx = start.cx - r.left, cy = start.cy - r.top;
+      S.tx = cx - (cx - start.tx) * f;
+      S.ty = cy - (cy - start.ty) * f;
+      S.k = k2; moved = 99;
+      setFollow(false); clampPan(); applyTransform();
+    }
+  });
+
+  function up(e) {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    captured = false;
+    mapArea.classList.remove("dragging");
+    if (pts.size === 0) {
+      const r = mapArea.getBoundingClientRect();
+      const quick = start && start.t && (Date.now() - start.t) < 350;
+      if (moved < 8 && tapMarker) {
+        openPopup(tapMarker);
+      } else if (moved < 8 && quick) {
+        const now = Date.now();
+        if (now - lastTap < 300) {                       // double tap → zoom
+          zoomAt(e.clientX - r.left, e.clientY - r.top, 1.9);
+          lastTap = 0;
+        } else {
+          lastTap = now;
+          closePopup();
+        }
+      } else if (moved < 8 && start && start.t && (Date.now() - start.t) >= 600 && S.animal && !S.placing) {
+        askPlaceHere(e.clientX - r.left, e.clientY - r.top);   // appui long → signaler ici
+      }
+      tapMarker = null;
+      start = null;
+    }
+  }
+  mapArea.addEventListener("pointerup", up);
+  mapArea.addEventListener("pointercancel", up);
+
+  mapArea.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const r = mapArea.getBoundingClientRect();
+    zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+    setFollow(false);
+  }, { passive:false });
+})();
+
+$("btnZoomIn").addEventListener("click", () => {
+  const a = mapArea.getBoundingClientRect(); zoomAt(a.width/2, a.height/2, 1.6);
+});
+$("btnZoomOut").addEventListener("click", () => {
+  const a = mapArea.getBoundingClientRect(); zoomAt(a.width/2, a.height/2, 1/1.6);
+});
+$("btnFit").addEventListener("click", () => { setFollow(false); fit(); });
+$("btnFollow").addEventListener("click", () => {
+  if (!S.pos) { toast("Position GPS pas encore disponible."); return; }
+  setFollow(!S.follow);
+  if (S.follow) { const p = geoToXY(S.pos.lat, S.pos.lng); centerOn(p.x, p.y, Math.max(S.k, S.fitK * 3)); }
+});
+function setFollow(v) { S.follow = v; $("btnFollow").classList.toggle("on", v); }
+
+window.addEventListener("resize", () => {
+  syncPanelHeight();
+  if (S.rendered) { clampPan(); applyTransform(); }
+});
+
+/* ----------------------------- Échelle ------------------------------ */
+function drawScale() {
+  if (!S.rendered) return;
+  const mpu = metersPerUnit();                    // m par point PDF
+  const mpp = mpu / S.k;                          // m par pixel écran
+  const targets = [50,100,200,500,1000,2000,5000];
+  let best = targets[0];
+  for (const t of targets) { if (t / mpp <= 120) best = t; }
+  $("scaleBar").style.width = Math.round(best / mpp) + "px";
+  $("scaleTxt").textContent = best >= 1000 ? (best/1000) + " km" : best + " m";
+}
+
+/* --------------------------- Géolocalisation ------------------------ */
+function startGPS() {
+  if (!navigator.geolocation) { setGps("error"); return; }
+  watchId = navigator.geolocation.watchPosition(
+    (p) => {
+      S.pos = { lat:p.coords.latitude, lng:p.coords.longitude };
+      S.acc = p.coords.accuracy;
+      setGps(inBounds(S.pos.lat, S.pos.lng) ? "ok" : "out");
+      if (S.follow && S.gps === "ok") {
+        const q = geoToXY(S.pos.lat, S.pos.lng);
+        centerOn(q.x, q.y, Math.max(S.k, S.fitK * 3));
+      } else { drawOverlay(); }
+    },
+    (err) => setGps(err.code === 1 ? "denied" : "error"),
+    { enableHighAccuracy:true, maximumAge:5000, timeout:20000 }
+  );
+  setFollow(true);
+}
+function setGps(s) {
+  S.gps = s;
+  const el = $("gps");
+  const map = {
+    ok:       ["ok",        "GPS actif"],
+    searching:["searching", "GPS…"],
+    out:      ["out",       "Hors réserve"],
+    error:    ["error",     "GPS perdu"],
+    denied:   ["error",     "GPS refusé"]
+  }[s] || ["error", s];
+  el.className = "badge " + map[0];
+  el.innerHTML = '<span class="led"></span>' + map[1];
+  updateReport(); drawOverlay();
+}
+
+/* ------------------------------ Signalements ------------------------ */
+function expiryMs() { return prefs.expiryH ? prefs.expiryH * 3600e3 : Infinity; }
+function isLive(s) { return !s.deleted && (Date.now() - new Date(s.ts).getTime()) < expiryMs(); }
+function live() { return sightings.filter(isLive); }
+function known() { return sightings.filter(s => !s.deleted); }
+
+function syncPanelHeight() {
+  const h = $("panel").offsetHeight;
+  if (h) document.documentElement.style.setProperty("--panelH", h + "px");
+}
+function buildGrid() {
+  const g = $("grid");
+  g.innerHTML = "";
+  ANIMALS.forEach(a => {
+    const btn = document.createElement("button");
+    btn.className = "an"; btn.type = "button";
+    btn.style.setProperty("--c", a.c);
+    btn.dataset.id = a.id;
+    btn.setAttribute("aria-pressed", "false");
+    btn.innerHTML = `<span class="e">${a.e}</span><span class="n">${a.nom}</span>`;
+    btn.addEventListener("click", () => pick(a.id));
+    g.appendChild(btn);
+  });
+  requestAnimationFrame(syncPanelHeight);
+}
+function pick(id) {
+  S.animal = S.animal === id ? null : id;
+  $("grid").querySelectorAll(".an").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.id === S.animal)));
+  updateReport();
+}
+function updateReport() {
+  const b2 = $("reportBtn");
+  if (!S.animal) { b2.textContent = "Sélectionnez un animal"; b2.disabled = true; return; }
+  const a = A[S.animal];
+  if (S.gps === "ok") { b2.textContent = `Signaler ${a.e} ${a.nom} ici`; b2.disabled = false; }
+  else if (S.gps === "out") { b2.textContent = "Hors réserve — placer à la main"; b2.disabled = false; }
+  else { b2.textContent = "Sans GPS — placer à la main"; b2.disabled = false; }
+}
+$("reportBtn").addEventListener("click", () => {
+  if (!S.animal) return;
+  if (S.gps === "ok" && S.pos) addSighting(S.pos.lat, S.pos.lng, S.acc);
+  else startPlacing();
+});
+
+function addSighting(lat, lng, acc) {
+  const now = new Date().toISOString();
+  const rec = {
+    id: uid(), animal:S.animal, ts:now,
+    lat:+lat.toFixed(6), lng:+lng.toFixed(6), acc:acc ? Math.round(acc) : null,
+    author:(sync && sync.author) || null, deleted:false, upd:now, sync:"pending"
+  };
+  sightings.unshift(rec);
+  lsSet(K_SIGHT, sightings);
+  const a = A[rec.animal];
+  toast(`${a.e} ${a.nom} signalé${syncOn() ? " · envoyé aux autres véhicules" : (prefs.expiryH ? " · visible " + prefs.expiryH + " h" : "")}`);
+  drawOverlay(); updateCount(); setSync();
+  if (syncOn()) syncCycle(true);
+}
+function removeSighting(id) {
+  const i = sightings.findIndex(s => s.id === id);
+  if (i < 0) return;
+  if (syncOn()) {
+    // Suppression logique : sans elle, le repère reviendrait à la relève suivante.
+    sightings[i] = Object.assign({}, sightings[i], {
+      deleted:true, upd:new Date().toISOString(), sync:"pending"
+    });
+  } else {
+    sightings.splice(i, 1);
+  }
+  lsSet(K_SIGHT, sightings);
+  closePopup(); drawOverlay(); updateCount(); setSync();
+  if (syncOn()) syncCycle(true);
+  if (sheetMode === "hist") openHist();
+}
+function updateCount() {
+  const n = live().length, el = $("liveCount");
+  el.textContent = n; el.hidden = n === 0;
+}
+
+/* ----------------------------- Placement ---------------------------- */
+function startPlacing(atX, atY) {
+  if (!S.animal) { toast("Choisissez d'abord un animal."); return; }
+  S.placing = true;
+  $("crosshair").hidden = false;
+  $("placebar").hidden = false;
+  $("placeText").textContent = `Amenez le repère sur l'emplacement de ${A[S.animal].nom.toLowerCase()}.`;
+  $("tools").hidden = true;
+  setFollow(false);
+  if (atX !== undefined) {
+    const a = mapArea.getBoundingClientRect();
+    S.tx += a.width / 2 - atX; S.ty += a.height / 2 - atY;
+    clampPan(); applyTransform();
+  }
+}
+function endPlacing(commit) {
+  if (commit) {
+    const a = mapArea.getBoundingClientRect();
+    const x = (a.width / 2 - S.tx) / S.k, y = (a.height / 2 - S.ty) / S.k;
+    if (x < 0 || y < 0 || x > S.pdfW || y > S.pdfH) { toast("Ce point est hors de la carte."); return; }
+    const g = xyToGeo(x, y);
+    addSighting(g.lat, g.lng, null);
+  }
+  S.placing = false;
+  $("crosshair").hidden = true;
+  $("placebar").hidden = true;
+  $("tools").hidden = false;
+}
+function askPlaceHere(sx, sy) { startPlacing(sx, sy); }
+$("placeGo").addEventListener("click", () => endPlacing(true));
+$("placeNo").addEventListener("click", () => endPlacing(false));
+
+/* ------------------------------ Overlay ----------------------------- */
+function drawOverlay() {
+  if (!S.rendered) return;
+  const a = mapArea.getBoundingClientRect();
+  overlay.setAttribute("viewBox", `0 0 ${a.width} ${a.height}`);
+  overlay.setAttribute("width", a.width);
+  overlay.setAttribute("height", a.height);
+  const sx = (x) => S.tx + x * S.k, sy = (y) => S.ty + y * S.k;
+  let html = "";
+
+  // signalements encore valides
+  const now = Date.now(), exp = expiryMs();
+  const vis = [];
+  live().forEach(s => {
+    const p = geoToXY(s.lat, s.lng);
+    const X = sx(p.x), Y = sy(p.y);
+    if (X < -40 || Y < -40 || X > a.width + 40 || Y > a.height + 40) return;
+    vis.push({ s, X, Y });
+  });
+  // Deux animaux signalés au même endroit : on les écarte en éventail,
+  // sinon le dernier repère masque complètement les précédents.
+  const buckets = new Map();
+  vis.forEach(v => {
+    const key = Math.round(v.X / 20) + "," + Math.round(v.Y / 20);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(v);
+  });
+  buckets.forEach(group => {
+    if (group.length < 2) return;
+    const r = 15 + group.length * 1.5;
+    group.forEach((v, i) => {
+      const ang = (i / group.length) * Math.PI * 2 - Math.PI / 2;
+      v.X += Math.cos(ang) * r; v.Y += Math.sin(ang) * r;
+    });
+  });
+  vis.forEach(({ s, X, Y }) => {
+    const an = A[s.animal] || A.autre;
+    const age = now - new Date(s.ts).getTime();
+    const fade = exp === Infinity ? 1 : Math.max(.35, 1 - (age / exp) * .65);
+    html += `<g class="hit" data-id="${s.id}" transform="translate(${X.toFixed(1)},${Y.toFixed(1)})" opacity="${fade.toFixed(2)}">
+      <circle class="grab" cx="0" cy="-13" r="23" fill="transparent"/>
+      <path d="M0 2 L-13 -14 A17 17 0 1 1 13 -14 Z" fill="${an.c}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+      <circle cx="0" cy="-17" r="13.5" fill="${an.c}" stroke="#fff" stroke-width="2.5"/>
+      <text x="0" y="-12" text-anchor="middle" font-size="15">${an.e}</text>
+    </g>`;
+  });
+
+  // position de l'observateur
+  if (S.pos && (S.gps === "ok")) {
+    const p = geoToXY(S.pos.lat, S.pos.lng);
+    const X = sx(p.x), Y = sy(p.y);
+    const rAcc = S.acc ? (S.acc / metersPerUnit()) * S.k : 0;
+    html += `<g transform="translate(${X.toFixed(1)},${Y.toFixed(1)})">
+      ${rAcc > 6 ? `<circle class="gps-pulse" r="${Math.min(rAcc, 260).toFixed(1)}" fill="#378ADD" opacity="0.18"/>` : ""}
+      <circle class="gps-pulse" r="17" fill="#378ADD" opacity="0.22"/>
+      <circle r="7.5" fill="#378ADD" stroke="#fff" stroke-width="2.5"/>
+    </g>`;
+  }
+  overlay.innerHTML = html;   // l'ouverture du repère est gérée par les gestes
+}
+
+/* ------------------------------- Popup ------------------------------ */
+function openPopup(id) {
+  const s = sightings.find(x => x.id === id);
+  if (!s) return;
+  S.selected = id;
+  const an = A[s.animal] || A.autre;
+  let d = "";
+  if (S.pos) {
+    const m = distance(S.pos.lat, S.pos.lng, s.lat, s.lng);
+    d = " · à " + (m >= 1000 ? (m/1000).toFixed(1) + " km" : Math.round(m) + " m")
+      + " " + bearing(S.pos.lat, S.pos.lng, s.lat, s.lng);
+  }
+  const p = $("popup");
+  p.innerHTML = `
+    <span class="e">${an.e}</span>
+    <div class="m">
+      <h4>${an.nom}</h4>
+      <div class="sub">${ago(s.ts)}${d}</div>
+      <div class="sub">${s.author ? esc(s.author) : s.lat.toFixed(5) + ", " + s.lng.toFixed(5)}</div>
+      <div class="acts">
+        <button data-a="go">Centrer</button>
+        <button data-a="share">Partager</button>
+        <button data-a="del" class="del">Supprimer</button>
+      </div>
+    </div>
+    <button class="x" data-a="close" aria-label="Fermer">✕</button>`;
+  p.hidden = false;
+  p.querySelector('[data-a="close"]').addEventListener("click", closePopup);
+  p.querySelector('[data-a="del"]').addEventListener("click", () => removeSighting(s.id));
+  p.querySelector('[data-a="share"]').addEventListener("click", () => share(s));
+  p.querySelector('[data-a="go"]').addEventListener("click", () => {
+    const q = geoToXY(s.lat, s.lng); setFollow(false); centerOn(q.x, q.y, Math.max(S.k, S.fitK * 4));
+  });
+}
+function closePopup() { $("popup").hidden = true; S.selected = null; }
+
+async function share(s) {
+  const an = A[s.animal] || A.autre;
+  const txt = `${an.e} ${an.nom} — ${ago(s.ts)}\n${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}\n`
+            + `https://maps.google.com/?q=${s.lat},${s.lng}`;
+  try {
+    if (navigator.share) await navigator.share({ title:an.nom, text:txt });
+    else { await navigator.clipboard.writeText(txt); toast("Copié dans le presse-papiers."); }
+  } catch (e) {}
+}
+
+/* ------------------------------- Sheets ----------------------------- */
+let sheetMode = null;
+const sheet = $("sheet"), scrim = $("scrim");
+function openSheet(title, right) {
+  $("sheetTitle").textContent = title;
+  $("sheetR").textContent = right || "";
+  sheet.hidden = false; scrim.hidden = false;
+  requestAnimationFrame(() => { sheet.classList.add("open"); scrim.classList.add("open"); });
+}
+function closeSheet() {
+  sheet.classList.remove("open"); scrim.classList.remove("open");
+  sheetMode = null;
+  setTimeout(() => { sheet.hidden = true; scrim.hidden = true; }, 280);
+}
+scrim.addEventListener("click", closeSheet);
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (S.placing) endPlacing(false); else if (!sheet.hidden) closeSheet(); else closePopup();
+});
+(function dragSheet() {
+  const g = $("grip"); let y0 = null;
+  const dn = (e) => { y0 = (e.touches ? e.touches[0] : e).clientY; sheet.style.transition = "none"; };
+  const mv = (e) => {
+    if (y0 === null) return;
+    const dy = Math.max(0, (e.touches ? e.touches[0] : e).clientY - y0);
+    sheet.style.transform = `translateY(${dy}px)`;
+  };
+  const upp = () => {
+    if (y0 === null) return;
+    const dy = parseFloat((sheet.style.transform.match(/([\d.]+)px/) || [0,0])[1]) || 0;
+    sheet.style.transition = ""; sheet.style.transform = ""; y0 = null;
+    if (dy > 90) closeSheet();
+  };
+  g.addEventListener("touchstart", dn, { passive:true });
+  g.addEventListener("touchmove", mv, { passive:true });
+  g.addEventListener("touchend", upp);
+  g.addEventListener("mousedown", dn);
+  window.addEventListener("mousemove", mv);
+  window.addEventListener("mouseup", upp);
+})();
+
+function openHist() {
+  sheetMode = "hist";
+  const all = known().slice().sort((x, y) => new Date(y.ts) - new Date(x.ts));
+  const nLive = live().length;
+  openSheet("Signalements", `${nLive} en cours · ${all.length} au total`);
+  const esp = new Set(live().map(s => s.animal)).size;
+  const last = all[0] ? ago(all[0].ts) : "—";
+  const body = $("sheetBody");
+  body.innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="v">${nLive}</div><div class="k">En cours</div></div>
+      <div class="stat"><div class="v">${esp}</div><div class="k">Espèces</div></div>
+      <div class="stat"><div class="v" style="font-size:15px;padding-top:5px">${last}</div><div class="k">Dernier</div></div>
+    </div>
+    <div class="rows" id="rows"></div>`;
+  const rows = body.querySelector("#rows");
+  if (!all.length) {
+    rows.innerHTML = `<div class="empty"><span class="e">🐾</span><p>Aucun signalement. Choisissez un animal puis appuyez sur le bouton vert : la position GPS est prise automatiquement.</p></div>`;
+    return;
+  }
+  all.forEach(s => {
+    const an = A[s.animal] || A.autre;
+    const l = isLive(s);
+    const btn = document.createElement("button");
+    btn.className = "row-i"; btn.style.setProperty("--c", an.c);
+    btn.innerHTML = `
+      <span class="e">${an.e}</span>
+      <span class="m">
+        <span class="t">${an.nom} <span class="pill${l ? " live" : ""}">${l ? "en cours" : "expiré"}</span></span>
+        <span class="s">${ago(s.ts)}${s.author ? " · " + esc(s.author) : ""} · ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</span>
+      </span>`;
+    btn.addEventListener("click", () => {
+      closeSheet();
+      const q = geoToXY(s.lat, s.lng);
+      setFollow(false); centerOn(q.x, q.y, Math.max(S.fitK * 4, S.k));
+      if (l) setTimeout(() => openPopup(s.id), 320);
+    });
+    rows.appendChild(btn);
+  });
+}
+
+function openSettings() {
+  sheetMode = "set";
+  openSheet("Réglages", `${known().length} signalement${known().length > 1 ? "s" : ""}`);
+  const B = b();
+  $("sheetBody").innerHTML = `
+    <div class="field">
+      <span class="label">Durée de validité d'un signalement</span>
+      <div class="seg" id="segExp"></div>
+      <p class="about">Passé ce délai, le repère disparaît de la carte : un animal vu il y a huit heures n'y est plus. L'historique, lui, garde tout.</p>
+    </div>
+    <div class="field">
+      <span class="label">Thème</span>
+      <div class="seg" id="segTheme"></div>
+    </div>
+    <div class="field">
+      <span class="label">Partage entre véhicules</span>
+      <div class="menu">
+        <button id="goSync"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6"/><path d="M4 18v-4h4M20 6v4h-4"/></svg>${syncOn() ? "Partage actif" : "Configurer le partage"}<span class="sub">${syncOn() ? esc(sync.author || "sans nom") : "Supabase"}</span></button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="label">Carte et calage</span>
+      <div class="menu">
+        <button id="swapMap"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13.5 12 18.5l9-5"/></svg>Changer le PDF de la réserve</button>
+        <button id="editB"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16l9-9 3 3-9 9H6v-3Z"/></svg>Modifier les coins GPS<span class="sub">${B.maxLat.toFixed(4)} / ${B.minLng.toFixed(4)}</span></button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="label">Données</span>
+      <div class="menu">
+        <button id="expJson"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>Exporter les signalements<span class="sub">JSON</span></button>
+        <button id="expCsv"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>Exporter en CSV<span class="sub">Excel</span></button>
+        <button id="impJson"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 19h16"/></svg>Importer<span class="sub">JSON</span></button>
+        <button id="purge"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>Effacer les signalements expirés</button>
+        <button id="wipe" class="danger"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Tout effacer</button>
+      </div>
+    </div>
+    <p class="about">
+      Tout est enregistré sur cet appareil : les signalements ne sont pas partagés avec les autres véhicules.
+      Utilisez « Partager » sur un repère pour l'envoyer par radio-relais, WhatsApp ou SMS.
+    </p>`;
+
+  const se = $("segExp");
+  EXPIRY_CHOICES.forEach(c => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.textContent = c.nom;
+    btn.setAttribute("aria-pressed", String(prefs.expiryH === c.h));
+    btn.addEventListener("click", () => {
+      prefs.expiryH = c.h; lsSet(K_PREFS, prefs);
+      drawOverlay(); updateCount(); openSettings();
+    });
+    se.appendChild(btn);
+  });
+  const st = $("segTheme");
+  [["auto","Automatique"],["light","Clair"],["dark","Sombre"]].forEach(([id, nom]) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.textContent = nom;
+    btn.setAttribute("aria-pressed", String((prefs.theme || "auto") === id));
+    btn.addEventListener("click", () => { prefs.theme = id; lsSet(K_PREFS, prefs); applyTheme(); openSettings(); });
+    st.appendChild(btn);
+  });
+
+  $("goSync").addEventListener("click", openSync);
+  $("swapMap").addEventListener("click", () => $("pdfSwap").click());
+  $("editB").addEventListener("click", editBounds);
+  $("expJson").addEventListener("click", () => dl(`signalements-${stamp()}.json`, "application/json",
+    JSON.stringify({ app:"leadwood-tracker", version:1, bounds:b(), exported:new Date().toISOString(), sightings }, null, 2)));
+  $("expCsv").addEventListener("click", () => {
+    const esc2 = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+    const rows = sightings.map(s => [s.ts, (A[s.animal]||A.autre).nom, s.lat, s.lng, s.acc == null ? "" : s.acc].map(esc2).join(";"));
+    dl(`signalements-${stamp()}.csv`, "text/csv;charset=utf-8",
+      "﻿" + ["date","animal","latitude","longitude","precision_m"].join(";") + "\n" + rows.join("\n"));
+  });
+  $("impJson").addEventListener("click", () => $("importInput").click());
+  $("purge").addEventListener("click", () => {
+    const before = known().length;
+    // Purge locale seulement : on ne supprime pas chez les autres véhicules.
+    sightings = sightings.filter(s => isLive(s) || (s.deleted && s.sync !== "ok"));
+    lsSet(K_SIGHT, sightings); drawOverlay(); updateCount(); setSync(); openSettings();
+    toast(`${before - known().length} signalement(s) expiré(s) retiré(s) de cet appareil.`);
+  });
+  $("wipe").addEventListener("click", () => {
+    const n = known().length;
+    if (!confirm(syncOn()
+      ? `Supprimer les ${n} signalements — y compris chez les autres véhicules ?`
+      : `Supprimer les ${n} signalements ?`)) return;
+    if (syncOn()) {
+      const now = new Date().toISOString();
+      sightings = sightings.map(s => Object.assign({}, s, { deleted:true, upd:now, sync:"pending" }));
+      syncCycle(true);
+    } else { sightings = []; }
+    lsSet(K_SIGHT, sightings);
+    drawOverlay(); updateCount(); setSync(); closeSheet();
+    toast("Tous les signalements ont été supprimés.");
+  });
+}
+
+function editBounds() {
+  const B = b();
+  sheetMode = "bounds";
+  openSheet("Coins de la carte", "");
+  $("sheetBody").innerHTML = `
+    <div class="field">
+      <div class="bounds">
+        <div><label for="eN">Nord (lat. max)</label><input id="eN" type="text" inputmode="decimal" value="${B.maxLat}"></div>
+        <div><label for="eS">Sud (lat. min)</label><input id="eS" type="text" inputmode="decimal" value="${B.minLat}"></div>
+        <div><label for="eW">Ouest (long. min)</label><input id="eW" type="text" inputmode="decimal" value="${B.minLng}"></div>
+        <div><label for="eE">Est (long. max)</label><input id="eE" type="text" inputmode="decimal" value="${B.maxLng}"></div>
+      </div>
+      <p class="about">Les signalements déjà enregistrés gardent leurs coordonnées GPS ; seule leur position sur l'image change.</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-ghost" id="bCancel" style="flex:0 0 auto">Annuler</button>
+      <button class="btn" id="bSave">Enregistrer</button>
+    </div>`;
+  $("bCancel").addEventListener("click", openSettings);
+  $("bSave").addEventListener("click", () => {
+    const n = (id) => parseFloat(String($(id).value).replace(",", "."));
+    const v = { maxLat:n("eN"), minLat:n("eS"), minLng:n("eW"), maxLng:n("eE") };
+    if (Object.values(v).some(x => !isFinite(x)) || v.maxLat <= v.minLat || v.maxLng <= v.minLng) {
+      toast("Valeurs incohérentes."); return;
+    }
+    prefs.bounds = v; lsSet(K_PREFS, prefs);
+    drawOverlay(); drawScale(); openSettings(); toast("Calage mis à jour.");
+  });
+}
+
+$("pdfSwap").addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  try {
+    const buf = await f.arrayBuffer();
+    await idbPut("map", buf);
+    closeSheet();
+    $("loading").hidden = false;
+    await renderPdf(buf);
+    fit();
+    toast("Nouvelle carte chargée.");
+  } catch (err) { $("loading").hidden = true; toast("Ce PDF n'a pas pu être chargé."); }
+});
+
+$("importInput").addEventListener("change", (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      const inc = Array.isArray(d) ? d : (d.sightings || []);
+      const known = new Set(sightings.map(s => s.id));
+      const add = inc.filter(s => s && s.lat != null && s.lng != null && !known.has(s.id));
+      sightings = add.concat(sightings);
+      lsSet(K_SIGHT, sightings);
+      drawOverlay(); updateCount();
+      toast(`${add.length} signalement(s) importé(s).`);
+      if (sheetMode === "set") openSettings();
+    } catch (err) { toast("Fichier illisible."); }
+  };
+  r.readAsText(f);
+});
+
+$("btnHist").addEventListener("click", openHist);
+$("btnSet").addEventListener("click", openSettings);
+$("sync").addEventListener("click", openSync);
+
+/* =================================================================== *
+ *  Partage entre véhicules
+ *
+ *  Hors ligne d'abord : l'appareil reste maître de ses données. Ce qui
+ *  n'est pas encore parti attend dans la file et repart au retour du
+ *  réseau. La relève se fait par sondage (12 s) plutôt que par
+ *  WebSocket : en brousse, une connexion permanente tombe sans arrêt.
+ * =================================================================== */
+const K_SYNC = "lw.sync.v1", K_CURSOR = "lw.sync.cursor";
+let sync = lsGet(K_SYNC, null);          // { url, key, author }
+let cursor = lsGet(K_CURSOR, null);
+let syncTimer = null, syncing = false, lastErr = null;
+
+function syncOn() { return !!(sync && sync.url && sync.key); }
+function api(path) { return sync.url.replace(/\/+$/, "") + "/rest/v1/" + path; }
+function heads(extra) {
+  const h = { "apikey": sync.key, "Content-Type": "application/json" };
+  // Les clés historiques sont des JWT (« eyJ… ») et passent aussi en Bearer.
+  // Les nouvelles clés « publishable » (sb_publishable_…) n'en sont pas :
+  // les envoyer en Bearer ferait échouer l'authentification.
+  if (/^eyJ/.test(sync.key)) h["Authorization"] = "Bearer " + sync.key;
+  return Object.assign(h, extra || {});
+}
+
+function toRemote(s) {
+  return {
+    id:s.id, animal:s.animal, ts:s.ts, lat:s.lat, lng:s.lng,
+    acc:s.acc == null ? null : s.acc, author:s.author || null,
+    deleted:!!s.deleted, updated_at:s.upd || s.ts
+  };
+}
+function fromRemote(r) {
+  return {
+    id:r.id, animal:r.animal, ts:r.ts, lat:+r.lat, lng:+r.lng,
+    acc:r.acc == null ? null : +r.acc, author:r.author || null,
+    deleted:!!r.deleted, upd:r.updated_at || r.ts, sync:"ok"
+  };
+}
+
+async function syncTest(url, key) {
+  const u = url.replace(/\/+$/, "") + "/rest/v1/sightings?select=id&limit=1";
+  const hh = { apikey:key };
+  if (/^eyJ/.test(key)) hh.Authorization = "Bearer " + key;
+  const res = await fetch(u, { headers:hh });
+  if (res.status === 200) return { ok:true };
+  if (res.status === 401 || res.status === 403) return { ok:false, msg:"Clé refusée : vérifiez la clé « anon public »." };
+  if (res.status === 404) return { ok:false, msg:"Table « sightings » introuvable : exécutez le script SQL dans Supabase." };
+  return { ok:false, msg:"Réponse inattendue du serveur (" + res.status + ")." };
+}
+
+async function syncCycle(force) {
+  if (!syncOn() || syncing) return;
+  if (!navigator.onLine && !force) { setSync(); return; }
+  syncing = true;
+  try {
+    // 1. envoyer ce qui attend
+    const out = sightings.filter(s => s.sync !== "ok").map(toRemote);
+    if (out.length) {
+      const res = await fetch(api("sightings"), {
+        method:"POST",
+        headers:heads({ "Prefer":"resolution=merge-duplicates,return=minimal" }),
+        body:JSON.stringify(out)
+      });
+      if (!res.ok) throw new Error("envoi " + res.status + " " + (await res.text()).slice(0, 120));
+      const sent = new Set(out.map(o => o.id));
+      sightings.forEach(s => { if (sent.has(s.id)) s.sync = "ok"; });
+      lsSet(K_SIGHT, sightings);
+    }
+
+    // 2. relever ce que les autres ont posté
+    const since = cursor || new Date(Date.now() - 7 * 864e5).toISOString();
+    const q = "sightings?select=*&updated_at=gt." + encodeURIComponent(since)
+            + "&order=updated_at.asc&limit=500";
+    const res2 = await fetch(api(q), { headers:heads() });
+    if (!res2.ok) throw new Error("relève " + res2.status);
+    const rows = await res2.json();
+    let changed = false;
+    rows.forEach(r => {
+      const inc = fromRemote(r);
+      const i = sightings.findIndex(s => s.id === inc.id);
+      if (i < 0) { sightings.push(inc); changed = true; }
+      else if (new Date(inc.upd) > new Date(sightings[i].upd || sightings[i].ts)) {
+        sightings[i] = inc; changed = true;
+      }
+      if (!cursor || new Date(inc.upd) > new Date(cursor)) cursor = inc.upd;
+    });
+    if (rows.length) { lsSet(K_CURSOR, cursor); }
+    if (changed) {
+      purgeTombstones();
+      lsSet(K_SIGHT, sightings);
+      drawOverlay(); updateCount();
+      if (sheetMode === "hist") openHist();
+    }
+    lastErr = null;
+  } catch (e) {
+    lastErr = String(e.message || e);
+  } finally {
+    syncing = false;
+    setSync();
+  }
+}
+
+function purgeTombstones() {                 // les suppressions n'ont plus à voyager après 7 jours
+  const cut = Date.now() - 7 * 864e5;
+  sightings = sightings.filter(s => !(s.deleted && new Date(s.upd || s.ts).getTime() < cut));
+}
+
+function setSync() {
+  const el = $("sync");
+  if (!el) return;
+  const wait = sightings.filter(s => s.sync !== "ok" && !s.remoteOnly).length;
+  let cls = "local", txt = "Local";
+  if (syncOn()) {
+    if (!navigator.onLine) { cls = "wait"; txt = wait ? wait + " en attente" : "Hors ligne"; }
+    else if (wait) { cls = "wait"; txt = wait + " en attente"; }
+    else if (lastErr) { cls = "error"; txt = "Partage en erreur"; }
+    else { cls = "ok"; txt = "Partagé"; }
+  }
+  el.className = "badge " + cls;
+  el.innerHTML = '<span class="led"></span>' + txt;
+}
+
+function startSync() {
+  clearInterval(syncTimer);
+  if (!syncOn()) { setSync(); return; }
+  syncCycle(true);
+  syncTimer = setInterval(() => { if (!document.hidden) syncCycle(); }, 12000);
+}
+window.addEventListener("online", () => syncCycle(true));
+window.addEventListener("offline", setSync);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) syncCycle(true); });
+
+/* ------------------- Écran de partage (réglages) -------------------- */
+const SQL = `create table if not exists sightings (
+  id uuid primary key,
+  animal text not null,
+  ts timestamptz not null,
+  lat double precision not null,
+  lng double precision not null,
+  acc integer,
+  author text,
+  deleted boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+create index if not exists sightings_updated_at_idx on sightings (updated_at);
+
+alter table sightings enable row level security;
+
+create policy "lecture" on sightings for select to anon using (true);
+create policy "ecriture" on sightings for insert to anon with check (true);
+create policy "maj" on sightings for update to anon using (true) with check (true);`;
+
+function openSync() {
+  sheetMode = "sync";
+  openSheet("Partage entre véhicules", syncOn() ? "actif" : "inactif");
+  const s = sync || { url:"", key:"", author:"" };
+  $("sheetBody").innerHTML = `
+    <div class="field">
+      <span class="label">Nom de ce véhicule</span>
+      <input class="inp" type="text" id="syAuthor" placeholder="Land Cruiser 2 — Jaco" value="${esc(s.author)}">
+      <p class="about">Affiché sur chaque repère que vous postez, pour que les autres sachent qui a vu l'animal.</p>
+    </div>
+    <div class="field">
+      <span class="label">Projet Supabase</span>
+      <input class="inp" type="text" id="syUrl" placeholder="https://xxxxxxxx.supabase.co" value="${esc(s.url)}" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <input class="inp" type="text" id="syKey" placeholder="Clé anon public (eyJ...)" value="${esc(s.key)}" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div style="display:flex;gap:10px">
+      ${syncOn() ? '<button class="btn-ghost" id="syOff" style="flex:0 0 auto">Désactiver</button>' : ""}
+      <button class="btn" id="syGo">${syncOn() ? "Vérifier et enregistrer" : "Activer le partage"}</button>
+    </div>
+    ${syncOn() ? `
+    <div class="field">
+      <span class="label">Équiper les autres véhicules</span>
+      <div class="menu">
+        <button id="syLink"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Copier le lien de configuration</button>
+      </div>
+      <p class="about">Ce lien contient le projet et la clé : envoyé à un guide, il configure son téléphone en une tape. À ne pas publier en ligne.</p>
+    </div>` : ""}
+    <div class="field">
+      <span class="label">Script à exécuter une fois dans Supabase</span>
+      <div class="menu"><button id="sySql"><svg viewBox="0 0 24 24"><path d="M9 9h10M9 15h10M5 9h.01M5 15h.01"/><rect x="2.5" y="4" width="19" height="16" rx="3"/></svg>Copier le script SQL<span class="sub">table + accès</span></button></div>
+      <p class="about">À coller dans <strong>SQL Editor</strong> puis exécuter. Sans ce script, la table n'existe pas et l'activation échouera.</p>
+    </div>
+    <p class="about">
+      La clé « anon » n'est pas dans le dépôt GitHub : seuls les appareils que vous configurez peuvent lire et
+      écrire. Si elle circule au-delà de votre équipe, régénérez-la depuis Supabase et reconfigurez les téléphones.
+    </p>`;
+
+  $("syGo").addEventListener("click", async () => {
+    const url = $("syUrl").value.trim(), key = $("syKey").value.trim(), author = $("syAuthor").value.trim();
+    if (!/^https?:\/\/.+/.test(url) || key.length < 20) { toast("URL du projet ou clé incomplète."); return; }
+    $("syGo").textContent = "Vérification…"; $("syGo").disabled = true;
+    let r;
+    try { r = await syncTest(url, key); }
+    catch (e) { r = { ok:false, msg:"Serveur injoignable : vérifiez l'URL et le réseau." }; }
+    $("syGo").disabled = false;
+    if (!r.ok) { $("syGo").textContent = "Activer le partage"; toast(r.msg); return; }
+    sync = { url, key, author };
+    lsSet(K_SYNC, sync);
+    sightings.forEach(s => { if (!s.author) s.author = author; s.sync = "pending"; });
+    lsSet(K_SIGHT, sightings);
+    startSync();
+    openSync();
+    toast("Partage activé. Vos signalements partent vers les autres véhicules.");
+  });
+
+  const off = $("syOff");
+  if (off) off.addEventListener("click", () => {
+    sync = null; lsSet(K_SYNC, null); clearInterval(syncTimer); setSync(); openSync();
+    toast("Partage désactivé : l'app repasse en local.");
+  });
+
+  const lk = $("syLink");
+  if (lk) lk.addEventListener("click", async () => {
+    const payload = btoa(unescape(encodeURIComponent(JSON.stringify({ u:sync.url, k:sync.key }))));
+    const link = location.origin + location.pathname + "#c=" + payload;
+    try {
+      if (navigator.share) await navigator.share({ title:"Leadwood Tracker", text:"Configuration du partage", url:link });
+      else { await navigator.clipboard.writeText(link); toast("Lien copié. À envoyer aux autres guides."); }
+    } catch (e) {}
+  });
+
+  $("sySql").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(SQL); toast("Script SQL copié."); }
+    catch (e) { alert(SQL); }
+  });
+}
+
+function applyConfigLink() {
+  const m = location.hash.match(/^#c=(.+)$/);
+  if (!m) return false;
+  try {
+    const d = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    if (!d.u || !d.k) return false;
+    sync = { url:d.u, key:d.k, author:(sync && sync.author) || "" };
+    lsSet(K_SYNC, sync);
+    history.replaceState(null, "", location.pathname);
+    setTimeout(() => toast("Partage configuré. Indiquez le nom de votre véhicule dans les réglages."), 900);
+    return true;
+  } catch (e) { return false; }
+}
+
+/* ------------------------------ Utilitaires ------------------------- */
+function uid() {
+  return crypto.randomUUID ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+}
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function ago(iso) {
+  const d = Date.now() - new Date(iso).getTime();
+  if (d < 6e4) return "à l'instant";
+  if (d < 36e5) return "il y a " + Math.round(d / 6e4) + " min";
+  if (d < 864e5) return "il y a " + Math.round(d / 36e5) + " h";
+  return new Date(iso).toLocaleString("fr-BE", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+}
+function stamp() { return new Date().toISOString().slice(0, 10); }
+function dl(name, mime, text) {
+  const url = URL.createObjectURL(new Blob([text], { type:mime }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast("Fichier généré : " + name);
+}
+let tt;
+function toast(msg) {
+  const el = $("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(tt); tt = setTimeout(() => el.classList.remove("show"), 3200);
+}
+function applyTheme() {
+  const t = prefs.theme || "auto";
+  if (t === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+}
+
+/* -------------------------------- Boot ------------------------------ */
+applyTheme();
+fillBounds();
+applyConfigLink();      // lien « #c=… » envoyé par un autre véhicule
+updateCount();
+setSync();
+startSync();
+
+// Rafraîchit l'estompement des repères et les « il y a X min ».
+setInterval(() => { if (S.rendered) { drawOverlay(); updateCount(); } }, 60000);
+
+(async function boot() {
+  let buf = null;
+  try { buf = await idbGet("map"); } catch (e) {}
+  if (buf) { await enterMap(buf); }
+})();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+})();
+</script>
+</body>
+</html>
