@@ -1657,11 +1657,19 @@ async function syncTest(url, key) {
   if (/^eyJ/.test(key)) hh.Authorization = "Bearer " + key;
   const res = await fetch(u, { headers:hh });
   if (res.status === 200) return { ok:true, auth:false };
-  // 401 avec une clé valide = la table n'est ouverte qu'aux comptes
-  // authentifiés. Ce n'est pas une erreur : c'est le mode sécurisé.
-  if (res.status === 401) return { ok:true, auth:true };
-  if (res.status === 403) return { ok:false, msg:"Accès refusé : vérifiez la clé et les politiques RLS." };
   if (res.status === 404) return { ok:false, msg:"Table « sightings » introuvable : exécutez le script SQL dans Supabase." };
+
+  // Accès refusé à la clé seule : c'est le mode sécurisé, pas une panne.
+  // PostgREST répond 401 ou 403 selon les cas (« permission denied »,
+  // code 42501, ou absence de jeton) ; on ne fait pas la différence, on
+  // écarte seulement le cas d'une clé réellement invalide.
+  if (res.status === 401 || res.status === 403) {
+    const body = await res.text().catch(() => "");
+    if (/invalid api key|invalid_api_key|no api key/i.test(body)) {
+      return { ok:false, msg:"Clé refusée par Supabase : vérifiez la clé « anon public »." };
+    }
+    return { ok:true, auth:true };
+  }
   return { ok:false, msg:"Réponse inattendue du serveur (" + res.status + ")." };
 }
 
@@ -1672,7 +1680,7 @@ async function syncCycle(force) {
   syncing = true;
   try {
     // 1. envoyer ce qui attend
-    const out = sightings.filter(s => s.sync !== "ok").map(toRemote);
+    const out = sightings.filter(s => s.sync !== "ok" && s.sync !== "refuse").map(toRemote);
     if (out.length) {
       const res = await fetch(api("sightings"), {
         method:"POST",
@@ -1680,6 +1688,20 @@ async function syncCycle(force) {
         body:JSON.stringify(out)
       });
       if (res.status === 401) return needLogin();
+      if (res.status === 403) {
+        const body = await res.text().catch(() => "");
+        // Une ligne refusée par la sécurité au niveau des lignes n'est pas
+        // un problème de session : la remettre en file bloquerait tout le
+        // reste indéfiniment. On l'écarte et on prévient une fois.
+        if (/row-level security|violates/i.test(body)) {
+          const ids = new Set(out.map(o => o.id));
+          sightings.forEach(s => { if (ids.has(s.id)) s.sync = "refuse"; });
+          lsSet(K_SIGHT, sightings);
+          toast("Un signalement n'a pas pu être partagé : il appartient à un autre véhicule.");
+          return;
+        }
+        return needLogin();
+      }
       if (!res.ok) throw new Error("envoi " + res.status + " " + (await res.text()).slice(0, 120));
       const sent = new Set(out.map(o => o.id));
       sightings.forEach(s => { if (sent.has(s.id)) s.sync = "ok"; });
@@ -1691,7 +1713,7 @@ async function syncCycle(force) {
     const q = "sightings?select=*&updated_at=gt." + encodeURIComponent(since)
             + "&order=updated_at.asc&limit=500";
     const res2 = await fetch(api(q), { headers:await heads() });
-    if (res2.status === 401) return needLogin();
+    if (res2.status === 401 || res2.status === 403) return needLogin();
     if (!res2.ok) throw new Error("relève " + res2.status);
     const rows = await res2.json();
     let changed = false;
@@ -1728,7 +1750,7 @@ function purgeTombstones() {                 // les suppressions n'ont plus à v
 function setSync() {
   const el = $("sync");
   if (!el) return;
-  const wait = sightings.filter(s => s.sync !== "ok" && !s.remoteOnly).length;
+  const wait = sightings.filter(s => s.sync !== "ok" && s.sync !== "refuse").length;
   let cls = "local", txt = "Local";
   if (syncOn()) {
     if (authRequired() && !loggedIn()) { cls = "error"; txt = "Connexion requise"; }
