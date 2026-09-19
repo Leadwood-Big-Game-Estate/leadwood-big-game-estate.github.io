@@ -292,6 +292,15 @@ select.inp{
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg button{padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:600;color:var(--ink-soft)}
 .seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sand)}
+.pos-card{
+  display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;
+  background:var(--surface-2);border:1px solid var(--line);
+}
+.pos-card .coords{font-size:14.5px;font-weight:700}
+.pos-card .acc{font-size:12.5px;color:var(--ink-mute);margin-top:1px}
+.pos-card button{margin-left:auto;font-size:13px;font-weight:700;color:var(--green-deep);padding:6px 8px;flex:0 0 auto}
+:root[data-theme="dark"] .pos-card button,
+:root:not([data-theme="light"]) .pos-card button{color:var(--green)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
 .stat{padding:12px;border-radius:12px;background:var(--surface-2)}
 .stat .v{font-family:var(--f-dis);font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
@@ -758,22 +767,32 @@ function readBounds() {
   if (v.maxLat <= v.minLat || v.maxLng <= v.minLng) return null;
   return v;
 }
-function checkAspect() {
-  const v = readBounds(), box = $("aspect");
-  if (!v || !S.pdfW) { box.hidden = true; return; }
+/* Compare les proportions de la page PDF à celles de la zone décrite par
+   les quatre coins. Un écart important signifie que les coordonnées ne
+   correspondent pas aux bords de la page, et que toutes les positions
+   seront décalées — le genre d'erreur qui ne se voit qu'en brousse. */
+function aspectDiff(v) {
+  if (!v || !S.pdfW || !S.pdfH) return null;
   const mid = (v.maxLat + v.minLat) / 2;
-  const geo = ((v.maxLng - v.minLng) * Math.cos(mid * Math.PI/180)) / (v.maxLat - v.minLat);
+  const geo = ((v.maxLng - v.minLng) * Math.cos(mid * Math.PI / 180)) / (v.maxLat - v.minLat);
   const pdf = S.pdfW / S.pdfH;
-  const ecart = Math.abs(pdf - geo) / geo;
+  return { ecart: Math.abs(pdf - geo) / geo, large: pdf / geo > 1 };
+}
+function paintAspect(box, v) {
+  const d = aspectDiff(v);
+  if (!box) return;
+  if (!d) { box.hidden = true; return; }
   box.hidden = false;
-  if (ecart < 0.08) {
+  const pct = (d.ecart * 100).toFixed(0);
+  if (d.ecart < 0.08) {
     box.className = "check ok";
-    box.innerHTML = `<span>✓</span><span>Les proportions du PDF correspondent à la zone décrite (écart ${(ecart*100).toFixed(0)} %). Le calage sera fidèle.</span>`;
+    box.innerHTML = `<span>✓</span><span>Les proportions du PDF correspondent à la zone décrite (écart ${pct} %). Le calage est fidèle.</span>`;
   } else {
     box.className = "check warn";
-    box.innerHTML = `<span>⚠</span><span>Le PDF est ${(pdf/geo > 1 ? "plus large" : "plus étroit")} que la zone décrite (écart ${(ecart*100).toFixed(0)} %). Les positions seront décalées : vérifiez que les coordonnées correspondent bien aux bords de la page.</span>`;
+    box.innerHTML = `<span>⚠</span><span>Le PDF est ${d.large ? "plus large" : "plus étroit"} que la zone décrite (écart ${pct} %). Les positions seront décalées : vérifiez que les coordonnées correspondent bien aux <strong>bords de la page</strong>, et non au dessin.</span>`;
   }
 }
+function checkAspect() { paintAspect($("aspect"), readBounds()); }
 
 $("pdfInput").addEventListener("change", async (e) => {
   const f = e.target.files && e.target.files[0];
@@ -1348,6 +1367,7 @@ function openSettings() {
   sheetMode = "set";
   openSheet("Réglages", `${known().length} signalement${known().length > 1 ? "s" : ""}`);
   const B = b();
+  const adm = isAdmin();
   $("sheetBody").innerHTML = `
     <div class="field">
       <span class="label">Durée de validité d'un signalement</span>
@@ -1358,6 +1378,18 @@ function openSettings() {
       <span class="label">Thème</span>
       <div class="seg" id="segTheme"></div>
     </div>
+    ${authRequired() ? `
+    <div class="field">
+      <span class="label">Compte</span>
+      <div class="pos-card">
+        <div>
+          <div class="coords">${esc(myName() || "non connecté")}</div>
+          <div class="acc">${adm ? "Accès administrateur" : "Guide"}</div>
+        </div>
+        <button type="button" id="setOut">Déconnexion</button>
+      </div>
+    </div>` : ""}
+    ${adm ? `
     <div class="field">
       <span class="label">Partage entre véhicules</span>
       <div class="menu">
@@ -1381,10 +1413,11 @@ function openSettings() {
         <button id="purge"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>Effacer les signalements expirés</button>
         <button id="wipe" class="danger"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Tout effacer</button>
       </div>
-    </div>
+    </div>` : ""}
     <p class="about">
-      Tout est enregistré sur cet appareil : les signalements ne sont pas partagés avec les autres véhicules.
-      Utilisez « Partager » sur un repère pour l'envoyer par radio-relais, WhatsApp ou SMS.
+      ${adm
+        ? "Le calage, la carte et les exports ne sont visibles que depuis un compte administrateur. Les guides n'ont accès qu'à l'affichage."
+        : "Pour changer la carte, le calage ou exporter les relevés, passez par un compte administrateur de la réserve."}
     </p>`;
 
   const se = $("segExp");
@@ -1406,6 +1439,10 @@ function openSettings() {
     btn.addEventListener("click", () => { prefs.theme = id; lsSet(K_PREFS, prefs); applyTheme(); openSettings(); });
     st.appendChild(btn);
   });
+
+  const so = $("setOut");
+  if (so) so.addEventListener("click", () => { signOut(); closeSheet(); showLogin(); });
+  if (!adm) return;                       // le reste n'existe que pour un administrateur
 
   $("goSync").addEventListener("click", openSync);
   $("swapMap").addEventListener("click", () => $("pdfSwap").click());
@@ -1467,12 +1504,23 @@ function editBounds() {
         <div><label for="eW">Ouest (long. min)</label><input id="eW" type="text" inputmode="decimal" value="${B.minLng}"></div>
         <div><label for="eE">Est (long. max)</label><input id="eE" type="text" inputmode="decimal" value="${B.maxLng}"></div>
       </div>
+      <div class="check" id="eAspect" hidden></div>
       <p class="about">Les signalements déjà enregistrés gardent leurs coordonnées GPS ; seule leur position sur l'image change.</p>
     </div>
     <div style="display:flex;gap:10px">
       <button class="btn-ghost" id="bCancel" style="flex:0 0 auto">Annuler</button>
       <button class="btn" id="bSave">Enregistrer</button>
     </div>`;
+  const lire = () => {
+    const n = (id) => parseFloat(String($(id).value).replace(",", "."));
+    const v = { maxLat:n("eN"), minLat:n("eS"), minLng:n("eW"), maxLng:n("eE") };
+    return Object.values(v).some(x => !isFinite(x)) || v.maxLat <= v.minLat || v.maxLng <= v.minLng
+      ? null : v;
+  };
+  const rafraichir = () => paintAspect($("eAspect"), lire());
+  ["eN","eS","eW","eE"].forEach(id => $(id).addEventListener("input", rafraichir));
+  rafraichir();
+
   $("bCancel").addEventListener("click", openSettings);
   $("bSave").addEventListener("click", () => {
     const n = (id) => parseFloat(String($(id).value).replace(",", "."));
@@ -1559,6 +1607,21 @@ function myName() {
 function vehiculeDuCompte(email) {
   const v = vehicules().find(x => x.email === email);
   return v ? v.nom : null;
+}
+
+/* Un guide n'a pas à toucher au calage, à la carte, ni aux exports : une
+   fausse manœuvre en pleine sortie décalerait les repères de tout le monde,
+   et un export CSV des positions n'a rien à faire sur son téléphone.
+   Les comptes administrateurs sont désignés dans config.js (admin: true),
+   ou par la métadonnée « admin » du compte Supabase.
+   Sans comptes du tout, l'appareil est seul maître : tout est accessible. */
+function isAdmin() {
+  if (!authRequired()) return true;
+  const u = me();
+  if (!u) return false;
+  if (u.user_metadata && u.user_metadata.admin === true) return true;
+  const v = vehicules().find(x => x.email === u.email);
+  return !!(v && v.admin === true);
 }
 function authRequired() { return !!(sync && sync.auth); }
 
