@@ -59,7 +59,5 @@ window.LW_DISPLAY_HOURS = 3;
  */
 window.LW_VEHICLES = [
   { name: "Land Cruiser TDC", email: "tdecoster@tdecoster.eu" },
-  { name: "Land Cruiser 2", email: "cruiser2@leadwood.local" },
-  { name: "Land Cruiser 3", email: "cruiser3@leadwood.local" },
-  { name: "Reserve office", email: "leopoldlangen@gmail.com", admin: true }
+  { name: "Admin", email: "leopoldlangen@gmail.com", admin: true }
 ];
