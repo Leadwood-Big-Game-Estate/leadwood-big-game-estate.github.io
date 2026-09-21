@@ -55,7 +55,5 @@ window.LW_SUPABASE = {
  */
 window.LW_VEHICULES = [
   { nom: "Land Cruiser TDC", email: "tdecoster@tdecoster.eu" },
-  { nom: "Land Cruiser LEOPOLD", email: "leopoldlangen@gmail.com" },
-  { nom: "Land Cruiser 3", email: "cruiser3@leadwood.local" },
-  { nom: "Réserve — bureau", email: "bureau@leadwood.local", admin: true }
+  { nom: "Land Cruiser LEOPOLD", email: "leopoldlangen@gmail.com", admin: true }
 ];
