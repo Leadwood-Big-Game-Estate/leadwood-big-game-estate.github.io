@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Leadwood Tracker</title>
-<meta name="description" content="Signalement des animaux en temps réel sur la carte de la réserve.">
+<meta name="description" content="Real-time animal sightings on the reserve map.">
 <meta name="theme-color" content="#1D9E75">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -73,7 +73,7 @@ button{cursor:pointer;border:0;background:none}
 [hidden]{display:none!important}
 #app{display:flex;flex-direction:column;height:100dvh}
 
-/* ------------------------- Écran d'accès --------------------------- */
+/* --------------------------- Access screen -------------------------- */
 #gate,#login{
   position:fixed;inset:0;z-index:2000;background:var(--sand);
   display:grid;place-items:center;padding:24px;
@@ -119,7 +119,7 @@ select.inp{
   background:var(--surface);font-weight:600;color:var(--ink-soft);
 }
 
-/* ------------------------------ Carte ------------------------------ */
+/* -------------------------------- Map ------------------------------ */
 #screen{flex:1;display:flex;flex-direction:column;overflow:hidden}
 #topbar{
   display:flex;align-items:center;gap:8px;flex-shrink:0;
@@ -208,7 +208,7 @@ select.inp{
 }
 .scalebar i{display:block;height:6px;border:1px solid currentColor;border-top:0}
 
-/* ------------------------- Panneau du bas -------------------------- */
+/* ---------------------------- Bottom panel ------------------------- */
 #panel{
   background:var(--surface);border-top:1px solid var(--line);flex-shrink:0;
   padding:10px 12px calc(var(--safe-b) + 12px);
@@ -231,7 +231,7 @@ select.inp{
 .an[aria-pressed="true"]{border-color:var(--c,#1D9E75);background:color-mix(in srgb,var(--c,#1D9E75) 14%,var(--surface))}
 .an[aria-pressed="true"] .n{color:var(--ink)}
 
-/* ------------------------------ Cartes ----------------------------- */
+/* ------------------------------ Popup ------------------------------ */
 #popup{
   position:absolute;left:10px;right:10px;bottom:10px;z-index:6;
   background:var(--surface);border:1px solid var(--line);border-radius:15px;
@@ -246,7 +246,7 @@ select.inp{
 #popup .acts button.del{color:var(--clay)}
 #popup .x{align-self:flex-start;color:var(--ink-mute);font-size:19px;line-height:1;padding:2px 4px}
 
-/* ----------------------------- Placement --------------------------- */
+/* ----------------------------- Placing ----------------------------- */
 #crosshair{position:absolute;inset:0;display:grid;place-items:center;z-index:5;pointer-events:none}
 #crosshair .c{width:54px;height:54px;border-radius:50%;border:2px solid var(--green);position:relative;background:color-mix(in srgb,var(--green) 12%,transparent)}
 #crosshair .c::before,#crosshair .c::after{content:"";position:absolute;background:var(--green)}
@@ -330,55 +330,61 @@ select.inp{
   #sheet{left:auto;right:16px;bottom:16px;width:400px;border-radius:20px;max-height:min(720px,86dvh)}
   #popup{left:auto;right:10px;width:330px}
 }
+#mapNote{
+  position:absolute;left:10px;right:10px;top:10px;z-index:5;
+  background:var(--surface);color:var(--ink-soft);border:1px solid var(--ochre);border-left-width:4px;
+  border-radius:12px;padding:10px 13px;font-size:13px;line-height:1.4;box-shadow:var(--shadow-sm);
+}
+@media (min-width:760px){#mapNote{right:auto;max-width:420px}}
 </style>
 </head>
 <body>
-<!-- ====================== Écran d'accès (provisoire) ===================== -->
+<!-- ======================== Access screen ========================== -->
 <section id="gate" hidden>
   <div class="gate-box">
     <div class="mark" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M12 14.2c-2.6 0-5.4 1.8-5.4 4.1 0 1.6 1.4 2.4 3 2.4.9 0 1.7-.3 2.4-.3s1.5.3 2.4.3c1.6 0 3-.8 3-2.4 0-2.3-2.8-4.1-5.4-4.1Z"/><ellipse cx="6.2" cy="11" rx="2.1" ry="2.7"/><ellipse cx="17.8" cy="11" rx="2.1" ry="2.7"/><ellipse cx="9.6" cy="6.3" rx="1.9" ry="2.5"/><ellipse cx="14.4" cy="6.3" rx="1.9" ry="2.5"/></svg>
     </div>
     <h1>Leadwood Tracker</h1>
-    <p class="sub">Accès réservé à l'équipe de la réserve</p>
-    <input class="inp" type="password" id="gatePass" placeholder="Mot de passe" autocomplete="current-password" autocapitalize="off" spellcheck="false">
-    <p class="err" id="gateErr" hidden>Mot de passe incorrect.</p>
-    <button class="btn" id="gateGo">Entrer</button>
+    <p class="sub">Reserved for the reserve team</p>
+    <input class="inp" type="password" id="gatePass" placeholder="Password" autocomplete="current-password" autocapitalize="off" spellcheck="false">
+    <p class="err" id="gateErr" hidden>Wrong password.</p>
+    <button class="btn" id="gateGo">Enter</button>
   </div>
 </section>
 
-<!-- =========================== Connexion ============================ -->
+<!-- =========================== Sign in ============================= -->
 <section id="login" hidden>
   <div class="gate-box">
     <div class="mark" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M12 14.2c-2.6 0-5.4 1.8-5.4 4.1 0 1.6 1.4 2.4 3 2.4.9 0 1.7-.3 2.4-.3s1.5.3 2.4.3c1.6 0 3-.8 3-2.4 0-2.3-2.8-4.1-5.4-4.1Z"/><ellipse cx="6.2" cy="11" rx="2.1" ry="2.7"/><ellipse cx="17.8" cy="11" rx="2.1" ry="2.7"/><ellipse cx="9.6" cy="6.3" rx="1.9" ry="2.5"/><ellipse cx="14.4" cy="6.3" rx="1.9" ry="2.5"/></svg>
     </div>
-    <h1>Connexion</h1>
-    <p class="sub" id="loginSub">Votre compte guide donne accès aux signalements de l'équipe.</p>
-    <select class="inp" id="loginVeh" hidden aria-label="Véhicule"></select>
-    <input class="inp" type="email" id="loginEmail" placeholder="Adresse e-mail" autocomplete="username" autocapitalize="off" spellcheck="false">
-    <input class="inp" type="password" id="loginPass" placeholder="Mot de passe" autocomplete="current-password">
+    <h1>Sign in</h1>
+    <p class="sub" id="loginSub">Your guide account gives access to the team's sightings.</p>
+    <select class="inp" id="loginVeh" hidden aria-label="Vehicle"></select>
+    <input class="inp" type="email" id="loginEmail" placeholder="Email address" autocomplete="username" autocapitalize="off" spellcheck="false">
+    <input class="inp" type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
     <p class="err" id="loginErr" hidden></p>
-    <button class="btn" id="loginGo">Se connecter</button>
-    <button class="link" id="loginSkip">Changer de projet Supabase</button>
-    <p class="note" id="loginNote">Sans compte, vos signalements ne parviendraient à personne.</p>
+    <button class="btn" id="loginGo">Sign in</button>
+    <button class="link" id="loginSkip">Change Supabase project</button>
+    <p class="note" id="loginNote">Without an account, your sightings would reach nobody.</p>
   </div>
 </section>
 
 <div id="app">
 
-  <!-- ============================= Carte ============================= -->
+  <!-- ============================== Map ============================== -->
   <section id="screen" hidden>
     <header id="topbar">
       <span class="name">Leadwood</span>
       <span class="badge searching" id="gps"><span class="led"></span>GPS…</span>
-      <button class="badge local" id="sync" title="Partage entre véhicules"><span class="led"></span>Local</button>
+      <button class="badge local" id="sync" title="Sharing between vehicles"><span class="led"></span>Local</button>
       <span class="sp"></span>
-      <button class="tb-btn" id="btnHist" aria-label="Historique des signalements">
+      <button class="tb-btn" id="btnHist" aria-label="Sightings">
         <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
         <span class="n" id="liveCount" hidden>0</span>
       </button>
-      <button class="tb-btn" id="btnSet" aria-label="Réglages">
+      <button class="tb-btn" id="btnSet" aria-label="Settings">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg>
       </button>
     </header>
@@ -386,25 +392,26 @@ select.inp{
     <div id="maparea">
       <div id="map"></div>
 
+      <div id="mapNote" hidden></div>
       <div id="loading" hidden><div class="spinner"></div></div>
       <div id="crosshair" hidden><div class="c"></div></div>
 
       <div id="placebar" hidden>
-        <p id="placeText">Amenez le repère sur le lieu de l'observation.</p>
-        <button class="no" id="placeNo">Annuler</button>
-        <button class="go" id="placeGo">Valider</button>
+        <p id="placeText">Move the marker to where the animal was seen.</p>
+        <button class="no" id="placeNo">Cancel</button>
+        <button class="go" id="placeGo">Confirm</button>
       </div>
 
       <div class="map-tools" id="tools">
-        <button id="btnFollow" aria-label="Centrer sur ma position">
+        <button id="btnFollow" aria-label="Follow my position">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
         </button>
-        <button id="btnZoomIn" aria-label="Zoomer">+</button>
-        <button id="btnZoomOut" aria-label="Dézoomer">−</button>
-        <button id="btnFond" aria-label="Changer le fond de carte">
+        <button id="btnZoomIn" aria-label="Zoom in">+</button>
+        <button id="btnZoomOut" aria-label="Zoom out">−</button>
+        <button id="btnFond" aria-label="Switch map background">
           <svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13.5 12 18.5l9-5"/></svg>
         </button>
-        <button id="btnFit" aria-label="Voir toute la réserve">
+        <button id="btnFit" aria-label="Show the whole reserve">
           <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
         </button>
       </div>
@@ -413,8 +420,8 @@ select.inp{
     </div>
 
     <div id="panel">
-      <div id="grid" role="group" aria-label="Choix de l'animal"></div>
-      <button class="btn" id="reportBtn" disabled>Sélectionnez un animal</button>
+      <div id="grid" role="group" aria-label="Choose the animal"></div>
+      <button class="btn" id="reportBtn" disabled>Select an animal</button>
     </div>
   </section>
 </div>
@@ -422,7 +429,7 @@ select.inp{
 <div id="scrim" hidden></div>
 <section id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
   <div class="grip" id="grip"><i></i></div>
-  <div class="shead"><h2 id="sheetTitle">Titre</h2><span class="r" id="sheetR"></span></div>
+  <div class="shead"><h2 id="sheetTitle">Title</h2><span class="r" id="sheetR"></span></div>
   <div class="sbody" id="sheetBody"></div>
 </section>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -430,36 +437,32 @@ select.inp{
 
 <script src="config.js"></script>
 <script src="leaflet.js"></script>
-<script src="reserve.js"></script>
 <script>
 /* =================================================================== *
- *  Leadwood Tracker — logique
- *  Les signalements restent sur l'appareil ; la carte est vectorielle
- *  (reserve.js, tiré des KMZ de la réserve) sur fond satellite.
+ *  Leadwood Tracker — application logic
+ *
+ *  Sightings live on the device and are shared through Supabase.
+ *  The map is Leaflet: satellite background + the reserve's roads and
+ *  boundary. The road data (reserve.json) is NOT in the public
+ *  repository: it sits in the private Supabase bucket and is only
+ *  downloaded by a signed-in account, then kept on the device.
  * =================================================================== */
 (function () {
 "use strict";
 
-
 /* =================================================================== *
- *  Écran d'accès — MESURE PROVISOIRE
+ *  Access screen — convenience measure only
  *
- *  Ce contrôle s'exécute dans le navigateur : le code de cette page est
- *  téléchargé par quiconque ouvre l'URL, et le mot de passe peut donc
- *  être contourné en lisant la source. Il écarte le passant qui tombe
- *  sur l'adresse ; il NE PROTÈGE PAS les données.
+ *  This check runs in the browser: anyone can read this page's code,
+ *  so the password can be bypassed. It keeps casual visitors out; it
+ *  does NOT protect the data. The real protection is the Supabase
+ *  accounts, checked by the server.
  *
- *  La protection réelle viendra de l'authentification Supabase : tant
- *  qu'elle n'est pas en place, considérez les signalements comme
- *  accessibles à qui détient la clé de partage.
- *
- *  Changer le mot de passe : ouvrir motdepasse.html sur ce même site,
- *  taper le mot de passe voulu, et recopier la ligne obtenue dans
- *  config.js. Une empreinte vide y désactive complètement cet écran.
+ *  To change the password: open password.html on this same site, type
+ *  the new password and copy the resulting line into config.js.
+ *  An empty hash disables this screen.
  * =================================================================== */
 const GATE_SALT = "leadwood:";
-// L'empreinte vit dans config.js, pour pouvoir changer le mot de passe sans
-// toucher à ce fichier. Absente, l'écran n'est tout simplement pas affiché.
 const GATE_HASH = (typeof window.LW_GATE_HASH === "string") ? window.LW_GATE_HASH : "";
 const K_GATE = "lw.gate.v1";
 
@@ -494,54 +497,91 @@ function gate() {
   });
 }
 
-/* ---------------------------- Référentiel --------------------------- */
+/* ------------------------------ Animals ----------------------------- */
+// "id" is the storage key: never change it once sightings exist.
 const ANIMALS = [
   { id:"lion",      nom:"Lion",       e:"🦁", c:"#C8842B" },
-  { id:"leopard",   nom:"Léopard",    e:"🐆", c:"#B4553A" },
-  { id:"elephant",  nom:"Éléphant",   e:"🐘", c:"#6E7A80" },
-  { id:"rhino",     nom:"Rhinocéros", e:"🦏", c:"#5F6A6A" },
-  { id:"buffle",    nom:"Buffle",     e:"🐃", c:"#4E4438" },
-  { id:"guepard",   nom:"Guépard",    e:"🐅", c:"#D9A13B" },
-  { id:"girafe",    nom:"Girafe",     e:"🦒", c:"#C99A45" },
-  { id:"zebre",     nom:"Zèbre",      e:"🦓", c:"#6B7280" },
+  { id:"leopard",   nom:"Leopard",    e:"🐆", c:"#B4553A" },
+  { id:"elephant",  nom:"Elephant",   e:"🐘", c:"#6E7A80" },
+  { id:"rhino",     nom:"Rhino",      e:"🦏", c:"#5F6A6A" },
+  { id:"buffle",    nom:"Buffalo",    e:"🐃", c:"#4E4438" },
+  { id:"guepard",   nom:"Cheetah",    e:"🐅", c:"#D9A13B" },
+  { id:"girafe",    nom:"Giraffe",    e:"🦒", c:"#C99A45" },
+  { id:"zebre",     nom:"Zebra",      e:"🦓", c:"#6B7280" },
   { id:"hippo",     nom:"Hippo",      e:"🦛", c:"#7C6A86" },
   { id:"crocodile", nom:"Crocodile",  e:"🐊", c:"#4C7A3C" },
-  { id:"gnou",      nom:"Gnou",       e:"🐂", c:"#5A5348" },
+  { id:"gnou",      nom:"Wildebeest", e:"🐂", c:"#5A5348" },
   { id:"impala",    nom:"Impala",     e:"🦌", c:"#A9762F" },
-  { id:"koudou",    nom:"Koudou",     e:"🫎", c:"#8A6A3E" },
-  { id:"hyene",     nom:"Hyène",      e:"🐺", c:"#7A6E55" },
-  { id:"lycaon",    nom:"Lycaon",     e:"🐕", c:"#9B6B3A" },
-  { id:"babouin",   nom:"Babouin",    e:"🐒", c:"#6F5B43" },
-  { id:"oiseau",    nom:"Oiseau",     e:"🦅", c:"#4F6470" },
-  { id:"autre",     nom:"Autre",      e:"🐾", c:"#1D9E75" }
+  { id:"koudou",    nom:"Kudu",       e:"🫎", c:"#8A6A3E" },
+  { id:"hyene",     nom:"Hyena",      e:"🐺", c:"#7A6E55" },
+  { id:"lycaon",    nom:"Wild dog",   e:"🐕", c:"#9B6B3A" },
+  { id:"babouin",   nom:"Baboon",     e:"🐒", c:"#6F5B43" },
+  { id:"oiseau",    nom:"Bird",       e:"🦅", c:"#4F6470" },
+  { id:"autre",     nom:"Other",      e:"🐾", c:"#1D9E75" }
 ];
 const A = Object.fromEntries(ANIMALS.map(a => [a.id, a]));
 
-// Emprise de secours, si reserve.js manquait : la zone de Leadwood.
+// Fallback area (Leadwood) until the road data is available.
 const DEFAULT_BOUNDS = { maxLat:-24.371180, minLng:30.900230, minLat:-24.470152, maxLng:30.995868 };
 
-/* ------------------------------ Stockage ---------------------------- */
+/* ------------------------------ Storage ----------------------------- */
 const K_SIGHT = "lw.sightings.v1";
 const K_PREFS = "lw.prefs.v1";
 
 function lsGet(k, d) { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : d; } catch (e) { return d; } }
 function lsSet(k, v) {
   try { localStorage.setItem(k, JSON.stringify(v)); return true; }
-  catch (e) { toast("Mémoire pleine : exportez puis effacez d'anciens signalements."); return false; }
+  catch (e) { toast("Storage full: export, then clear old sightings."); return false; }
 }
 
 let sightings = lsGet(K_SIGHT, []);
 let prefs = lsGet(K_PREFS, { theme:"auto" });
 if (!prefs.fond) prefs.fond = "sat";
 
-// L'ancienne carte PDF (jusqu'à 25 Mo) était copiée dans IndexedDB : on
-// libère cette place sur les téléphones déjà équipés.
+// The old PDF map (up to 25 MB) used to be copied into IndexedDB:
+// free that space on phones that already had it.
 try { indexedDB.deleteDatabase("leadwood"); } catch (e) {}
 
-/* -------------------------------- État ------------------------------ */
+// The road data is kept in its own small IndexedDB database.
+const DB = "leadwood-data", STORE = "files";
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbPut(key, val) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(val, key);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readonly");
+    const rq = tx.objectStore(STORE).get(key);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function idbDel(key) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+
+/* ------------------------------- State ------------------------------ */
 const S = {
-  rendered:false, rb:null, renderer:null,
-  pos:null, acc:null, gps:"searching",
+  rendered:false, rb:null, renderer:null, fitted:false,
+  pos:null, pos0:false, acc:null, gps:"searching",
   animal:null, follow:true,
   placing:false, selected:null
 };
@@ -549,8 +589,8 @@ let watchId = null;
 
 const $ = (id) => document.getElementById(id);
 
-/* ------------------------------- Géo -------------------------------- */
-function distance(a1, o1, a2, o2) {           // haversine, en mètres
+/* -------------------------------- Geo ------------------------------- */
+function distance(a1, o1, a2, o2) {           // haversine, metres
   const R = 6371000, r = Math.PI / 180;
   const dLat = (a2 - a1) * r, dLng = (o2 - o1) * r;
   const s = Math.sin(dLat/2)**2 + Math.cos(a1*r) * Math.cos(a2*r) * Math.sin(dLng/2)**2;
@@ -561,34 +601,41 @@ function bearing(a1, o1, a2, o2) {
   const y = Math.sin((o2-o1)*r) * Math.cos(a2*r);
   const x = Math.cos(a1*r)*Math.sin(a2*r) - Math.sin(a1*r)*Math.cos(a2*r)*Math.cos((o2-o1)*r);
   const d = (Math.atan2(y, x) / r + 360) % 360;
-  return ["N","NE","E","SE","S","SO","O","NO"][Math.round(d / 45) % 8];
+  return ["N","NE","E","SE","S","SW","W","NW"][Math.round(d / 45) % 8];
 }
 
-/* ------------------------- Données de la réserve -------------------- */
-/* reserve.js est généré à partir des fichiers KMZ de la réserve (limite
-   de Rietspruit, routes de Leadwood, Bloubank et Khaya Ndlovu) par
-   outils/kmz2js.py. Les coordonnées y sont réelles : plus aucun calage. */
-const RES = window.LW_RESERVE || { limite:[], lignes:[], noms:[] };
-const Z_NOMS = 15;                    // noms des routes à partir de ce zoom
+/* ---------------------------- Reserve data -------------------------- */
+/* reserve.json is generated from the reserve's KMZ files (Rietspruit
+   boundary; Leadwood, Bloubank and Khaya Ndlovu roads) by
+   tools/kmz2json.py. Coordinates are real: no calibration needed.
+   It lives in Supabase Storage, private bucket "cartes". */
+const MAP_BUCKET = "cartes", MAP_FILE = "reserve.json";
+const EMPTY = { limite:[], lignes:[], noms:[], info:"" };
+let RES = EMPTY;
+const Z_NAMES = 15;                   // road names from this zoom level
 
-function pointDansAnneau(lat, lng, ring) {
-  let dedans = false;
+function validReserve(d) {
+  return d && Array.isArray(d.limite) && Array.isArray(d.lignes) && Array.isArray(d.noms)
+      && (d.limite.length + d.lignes.length) > 0;
+}
+function pointInRing(lat, lng, ring) {
+  let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [ai, oi] = ring[i], [aj, oj] = ring[j];
-    if (((ai > lat) !== (aj > lat)) && (lng < (oj - oi) * (lat - ai) / (aj - ai) + oi)) dedans = !dedans;
+    if (((ai > lat) !== (aj > lat)) && (lng < (oj - oi) * (lat - ai) / (aj - ai) + oi)) inside = !inside;
   }
-  return dedans;
+  return inside;
 }
-// Dans la réserve, avec ~130 m de tolérance : un GPS qui flotte le long
-// de la clôture ne doit pas faire basculer l'app en « hors réserve ».
+// Inside the reserve, with ~130 m tolerance: a GPS fix wandering along
+// the fence must not flip the app to "outside the reserve".
 function inReserve(lat, lng) {
   if (!RES.limite.length) {
-    const B = DEFAULT_BOUNDS;
-    return lat <= B.maxLat && lat >= B.minLat && lng >= B.minLng && lng <= B.maxLng;
+    const B = DEFAULT_BOUNDS, t = 0.01;
+    return lat <= B.maxLat + t && lat >= B.minLat - t && lng >= B.minLng - t && lng <= B.maxLng + t;
   }
   const t = 0.0012;
   return [[0,0],[t,0],[-t,0],[0,t],[0,-t]].some(([dl, dg]) =>
-    RES.limite.some(r => pointDansAnneau(lat + dl, lng + dg, r)));
+    RES.limite.some(r => pointInRing(lat + dl, lng + dg, r)));
 }
 function reserveBounds() {
   const pts = RES.limite.length ? RES.limite.flat() : RES.lignes.flatMap(l => l.p);
@@ -599,12 +646,72 @@ function reserveBounds() {
   return L.latLngBounds(pts);
 }
 
-/* ------------------------------ La carte ---------------------------- */
-let map = null, fondSat = null, reserveLayer = null, nomsLayer = null, markerLayer = null;
+function mapNote(html) {
+  const el = $("mapNote");
+  el.hidden = !html;
+  el.innerHTML = html || "";
+}
+
+// Cached copy first (instant, works offline), then a fresh copy from
+// Supabase when signed in and online.
+async function loadReserve() {
+  let cached = null;
+  try { cached = await idbGet("reserve"); } catch (e) {}
+  if (validReserve(cached) && RES === EMPTY) applyReserve(cached);
+
+  if (!syncOn() || (authRequired() && !loggedIn())) {
+    if (RES === EMPTY) mapNote("Sign in to load the reserve roads.");
+    return;
+  }
+  try {
+    const h = await heads();
+    delete h["Content-Type"];
+    const r = await fetch(base() + "/storage/v1/object/" + MAP_BUCKET + "/" + MAP_FILE, { headers:h, cache:"no-store" });
+    if (!r.ok) throw new Error("http" + r.status);
+    const d = await r.json();
+    if (!validReserve(d)) throw new Error("invalid");
+    const txt = JSON.stringify(d);
+    if (!cached || JSON.stringify(cached) !== txt) {
+      idbPut("reserve", d).catch(() => {});
+      applyReserve(d);
+    }
+    mapNote("");
+  } catch (e) {
+    if (RES !== EMPTY) return;                       // cached copy is on screen
+    const m = String(e.message || e);
+    if (!navigator.onLine) mapNote("No network, and the reserve roads have never been downloaded on this phone. Connect once to get them.");
+    else if (/http(400|404)/.test(m)) mapNote(isAdmin()
+      ? "No road data in Supabase: upload <strong>reserve.json</strong> to Storage → bucket <strong>cartes</strong>."
+      : "The reserve roads are not available yet. Please tell the reserve office.");
+    else if (/http(401|403)/.test(m)) mapNote("Access to the reserve roads was refused. Sign out and in again.");
+    else if (m === "invalid") mapNote("The reserve.json file in Supabase is not valid.");
+    else mapNote("The reserve roads could not be downloaded (weak network). They will load next time.");
+  }
+}
+function applyReserve(d) {
+  RES = d;
+  if (!map) return;
+  S.rb = reserveBounds();
+  map.setMaxBounds(S.rb.pad(0.6));
+  buildNames();
+  drawReserve();
+  updateNames();
+  if (!S.follow || S.gps !== "ok") map.fitBounds(S.rb, { padding:[12, 12] });
+  if (S.pos) setGps(inReserve(S.pos.lat, S.pos.lng) ? "ok" : "out");
+}
+// On an explicit sign-out the road data leaves the device with the account.
+function forgetReserve() {
+  idbDel("reserve").catch(() => {});
+  RES = EMPTY;
+  if (map) { drawReserve(); buildNames(); updateNames(); }
+}
+
+/* -------------------------------- Map ------------------------------- */
+let map = null, satLayer = null, reserveLayer = null, namesLayer = null, markerLayer = null;
 let gpsDot = null, gpsAcc = null;
 
-// Fond satellite : imagerie mondiale Esri, sans clé. Les tuiles consultées
-// sont gardées par le service worker pour les sorties hors réseau.
+// Satellite background: Esri World Imagery, no key needed. Tiles already
+// viewed are kept by the service worker for trips without network.
 const SAT_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
 function isDark() {
@@ -628,7 +735,7 @@ function styles() {
     limite:   { color:"#1D9E75", weight:3, opacity:1, fill:true, fillColor:"#1D9E75", fillOpacity:.06 }
   };
 }
-const CLASSES = { route:"Route", piste:"Piste (2-track)", interdit:"No entry for Traverse" };
+const KINDS = { route:"Road", piste:"Two-track", interdit:"No entry for Traverse" };
 
 function drawReserve() {
   if (!map) return;
@@ -640,40 +747,41 @@ function drawReserve() {
     L.polyline(l.p, Object.assign({ renderer:rnd, interactive:false }, st.casing)).addTo(g));
   ["piste", "route", "interdit"].forEach(c => RES.lignes.filter(l => l.c === c).forEach(l => {
     const pl = L.polyline(l.p, Object.assign({ renderer:rnd }, st[c] || st.route));
-    // Toucher une route donne son nom : utile pour annoncer un animal à la radio.
+    // Tapping a road shows its name: handy when calling an animal on the radio.
     pl.on("click", (e) => {
       L.DomEvent.stopPropagation(e);
-      toast((c === "interdit" ? "⛔ " : "") + (l.n || "Route sans nom") + " · " + CLASSES[c] + (l.z ? " · " + l.z : ""));
+      toast((c === "interdit" ? "⛔ " : "") + (l.n || "Unnamed road") + " · " + KINDS[c] + (l.z ? " · " + l.z : ""));
     });
     pl.addTo(g);
   }));
   reserveLayer = g.addTo(map);
-  if (markerLayer) { markerLayer.remove(); markerLayer.addTo(map); }   // repères au-dessus
+  if (markerLayer) { markerLayer.remove(); markerLayer.addTo(map); }   // markers on top
 }
 
-function buildNoms() {
-  nomsLayer = L.layerGroup();
+function buildNames() {
+  if (namesLayer && map && map.hasLayer(namesLayer)) map.removeLayer(namesLayer);
+  namesLayer = L.layerGroup();
   RES.noms.forEach(([lat, lng, nom, t]) => {
     if (!nom) return;
     L.marker([lat, lng], {
       icon:L.divIcon({ className:"lbl" + (t === "eau" ? " eau" : ""), html:"<span>" + esc(nom) + "</span>", iconSize:[0, 0] }),
       interactive:false, keyboard:false
-    }).addTo(nomsLayer);
+    }).addTo(namesLayer);
   });
 }
-function majNoms() {
-  if (!map || !nomsLayer) return;
-  const voir = map.getZoom() >= Z_NOMS;
-  if (voir && !map.hasLayer(nomsLayer)) nomsLayer.addTo(map);
-  else if (!voir && map.hasLayer(nomsLayer)) map.removeLayer(nomsLayer);
+function updateNames() {
+  if (!map || !namesLayer) return;
+  const show = map.getZoom() >= Z_NAMES;
+  if (show && !map.hasLayer(namesLayer)) namesLayer.addTo(map);
+  else if (!show && map.hasLayer(namesLayer)) map.removeLayer(namesLayer);
 }
 
 function setFond(f) {
   prefs.fond = f === "plan" ? "plan" : "sat";
   lsSet(K_PREFS, prefs);
   if (!map) return;
-  if (prefs.fond === "sat") { if (!map.hasLayer(fondSat)) fondSat.addTo(map); }
-  else if (map.hasLayer(fondSat)) map.removeLayer(fondSat);
+  if (prefs.fond === "sat") { if (!map.hasLayer(satLayer)) satLayer.addTo(map); }
+  else if (map.hasLayer(satLayer)) map.removeLayer(satLayer);
   $("map").classList.toggle("plan", prefs.fond !== "sat");
   $("btnFond").classList.toggle("on", prefs.fond === "plan");
   drawReserve();
@@ -681,8 +789,8 @@ function setFond(f) {
 
 function initMap() {
   S.rb = reserveBounds();
-  // Rendu canvas : ~300 tracés restent fluides même sur un vieux téléphone,
-  // et la tolérance élargit la zone de toucher d'une route.
+  // Canvas rendering keeps ~300 lines smooth even on an old phone, and
+  // the tolerance widens the touch area of a road.
   S.renderer = L.canvas({ padding:0.5, tolerance:10 });
   map = L.map("map", {
     zoomControl:false, attributionControl:true, renderer:S.renderer,
@@ -691,31 +799,33 @@ function initMap() {
   });
   map.attributionControl.setPrefix(false);
   L.control.scale({ imperial:false, position:"bottomleft", maxWidth:110 }).addTo(map);
-  fondSat = L.tileLayer(SAT_URL, {
+  satLayer = L.tileLayer(SAT_URL, {
     maxNativeZoom:17, maxZoom:19, crossOrigin:"anonymous", keepBuffer:3,
-    attribution:"Imagerie © Esri, Maxar, Earthstar Geographics"
+    attribution:"Imagery © Esri, Maxar, Earthstar Geographics"
   });
   map.fitBounds(S.rb, { padding:[12, 12] });
   markerLayer = L.layerGroup().addTo(map);
-  buildNoms();
+  buildNames();
   setFond(prefs.fond);
-  majNoms();
+  updateNames();
 
   map.on("dragstart", () => setFollow(false));
-  map.on("zoomend", () => { majNoms(); drawOverlay(); });
+  map.on("zoomend", () => { updateNames(); drawOverlay(); });
   map.on("click", () => { if (!S.placing) closePopup(); });
-  // Appui long sur la carte : signaler l'animal choisi à cet endroit.
+  // Long press on the map: report the selected animal at that spot.
   map.on("contextmenu", (e) => { if (S.animal && !S.placing) startPlacing(e.latlng); });
   S.rendered = true;
 }
 
 function enterMap() {
-  if (S.rendered) return;
-  $("screen").hidden = false;
-  buildGrid();
-  initMap();
-  drawOverlay();
-  startGPS();
+  if (!S.rendered) {
+    $("screen").hidden = false;
+    buildGrid();
+    initMap();
+    drawOverlay();
+    startGPS();
+  }
+  loadReserve();
 }
 
 function centerOn(lat, lng, z) {
@@ -728,10 +838,10 @@ $("btnZoomOut").addEventListener("click", () => map && map.zoomOut(1));
 $("btnFit").addEventListener("click", () => { setFollow(false); map && map.fitBounds(S.rb, { padding:[12, 12] }); });
 $("btnFond").addEventListener("click", () => {
   setFond(prefs.fond === "sat" ? "plan" : "sat");
-  toast(prefs.fond === "sat" ? "Fond satellite" : "Plan des routes — fonctionne sans réseau");
+  toast(prefs.fond === "sat" ? "Satellite view" : "Road map — works without network");
 });
 $("btnFollow").addEventListener("click", () => {
-  if (!S.pos) { toast("Position GPS pas encore disponible."); return; }
+  if (!S.pos) { toast("GPS position not available yet."); return; }
   setFollow(!S.follow);
   if (S.follow) centerOn(S.pos.lat, S.pos.lng, 16);
 });
@@ -742,17 +852,17 @@ window.addEventListener("resize", () => {
   if (map) map.invalidateSize();
 });
 
-/* --------------------------- Géolocalisation ------------------------ */
+/* ------------------------------ Location ---------------------------- */
 function startGPS() {
   if (!navigator.geolocation) { setGps("error"); return; }
   watchId = navigator.geolocation.watchPosition(
     (p) => {
       S.pos = { lat:p.coords.latitude, lng:p.coords.longitude };
       S.acc = p.coords.accuracy;
-      const premier = !S.pos0; S.pos0 = true;
+      const first = !S.pos0; S.pos0 = true;
       setGps(inReserve(S.pos.lat, S.pos.lng) ? "ok" : "out");
       if (S.follow && S.gps === "ok") {
-        if (premier) centerOn(S.pos.lat, S.pos.lng, 15);
+        if (first) centerOn(S.pos.lat, S.pos.lng, 15);
         else map.panTo([S.pos.lat, S.pos.lng], { animate:true });
       }
       drawGps();
@@ -765,25 +875,25 @@ function startGPS() {
 function setGps(s) {
   S.gps = s;
   const el = $("gps");
-  const map = {
-    ok:       ["ok",        "GPS actif"],
+  const m = {
+    ok:       ["ok",        "GPS on"],
     searching:["searching", "GPS…"],
-    out:      ["out",       "Hors réserve"],
-    error:    ["error",     "GPS perdu"],
-    denied:   ["error",     "GPS refusé"]
+    out:      ["out",       "Outside reserve"],
+    error:    ["error",     "GPS lost"],
+    denied:   ["error",     "GPS denied"]
   }[s] || ["error", s];
-  el.className = "badge " + map[0];
-  el.innerHTML = '<span class="led"></span>' + map[1];
+  el.className = "badge " + m[0];
+  el.innerHTML = '<span class="led"></span>' + m[1];
   updateReport(); drawGps();
 }
 
-/* ------------------------------ Signalements ------------------------ */
-/* Durée d'affichage d'un repère : réglée une fois pour toute l'équipe dans
-   config.js (LW_DUREE_H). Si chaque téléphone avait la sienne, deux
-   véhicules ne verraient pas la même carte au même moment. */
+/* ------------------------------ Sightings --------------------------- */
+/* How long a marker stays on the map: set once for the whole team in
+   config.js (LW_DISPLAY_HOURS). If every phone had its own value, two
+   vehicles would not see the same map at the same time. */
 function dureeH() {
-  const d = window.LW_DUREE_H;
-  return (typeof d === "number" && d >= 0) ? d : 5;
+  const d = (typeof window.LW_DISPLAY_HOURS === "number") ? window.LW_DISPLAY_HOURS : window.LW_DUREE_H;
+  return (typeof d === "number" && d >= 0) ? d : 3;
 }
 function expiryMs() { const h = dureeH(); return h ? h * 3600e3 : Infinity; }
 function isLive(s) { return !s.deleted && (Date.now() - new Date(s.ts).getTime()) < expiryMs(); }
@@ -816,11 +926,11 @@ function pick(id) {
 }
 function updateReport() {
   const b2 = $("reportBtn");
-  if (!S.animal) { b2.textContent = "Sélectionnez un animal"; b2.disabled = true; return; }
+  if (!S.animal) { b2.textContent = "Select an animal"; b2.disabled = true; return; }
   const a = A[S.animal];
-  if (S.gps === "ok") { b2.textContent = `Signaler ${a.e} ${a.nom} ici`; b2.disabled = false; }
-  else if (S.gps === "out") { b2.textContent = "Hors réserve — placer à la main"; b2.disabled = false; }
-  else { b2.textContent = "Sans GPS — placer à la main"; b2.disabled = false; }
+  if (S.gps === "ok") { b2.textContent = `Report ${a.e} ${a.nom} here`; b2.disabled = false; }
+  else if (S.gps === "out") { b2.textContent = "Outside reserve — place by hand"; b2.disabled = false; }
+  else { b2.textContent = "No GPS — place by hand"; b2.disabled = false; }
 }
 $("reportBtn").addEventListener("click", () => {
   if (!S.animal) return;
@@ -839,7 +949,7 @@ function addSighting(lat, lng, acc) {
   sightings.unshift(rec);
   lsSet(K_SIGHT, sightings);
   const a = A[rec.animal];
-  toast(`${a.e} ${a.nom} signalé${syncOn() ? " · envoyé aux autres véhicules" : (dureeH() ? " · visible " + dureeH() + " h" : "")}`);
+  toast(`${a.e} ${a.nom} reported${syncOn() ? " · sent to the other vehicles" : (dureeH() ? " · visible " + dureeH() + " h" : "")}`);
   drawOverlay(); updateCount(); setSync();
   if (syncOn()) syncCycle(true);
 }
@@ -847,7 +957,7 @@ function removeSighting(id) {
   const i = sightings.findIndex(s => s.id === id);
   if (i < 0) return;
   if (syncOn()) {
-    // Suppression logique : sans elle, le repère reviendrait à la relève suivante.
+    // Soft delete: otherwise the marker would come back at the next pull.
     sightings[i] = Object.assign({}, sightings[i], {
       deleted:true, upd:new Date().toISOString(), sync:"pending"
     });
@@ -864,14 +974,14 @@ function updateCount() {
   el.textContent = n; el.hidden = n === 0;
 }
 
-/* ----------------------------- Placement ---------------------------- */
+/* ----------------------------- Placing ------------------------------ */
 function startPlacing(ll) {
-  if (!S.animal) { toast("Choisissez d'abord un animal."); return; }
+  if (!S.animal) { toast("Choose an animal first."); return; }
   S.placing = true;
   closePopup();
   $("crosshair").hidden = false;
   $("placebar").hidden = false;
-  $("placeText").textContent = `Amenez le repère sur l'emplacement de ${A[S.animal].nom.toLowerCase()}.`;
+  $("placeText").textContent = `Move the marker to where the ${A[S.animal].nom.toLowerCase()} is.`;
   $("tools").hidden = true;
   setFollow(false);
   if (ll) map.panTo(ll);
@@ -879,7 +989,7 @@ function startPlacing(ll) {
 function endPlacing(commit) {
   if (commit) {
     const c = map.getCenter();
-    if (!S.rb.pad(0.25).contains(c)) { toast("Ce point est hors de la carte de la réserve."); return; }
+    if (!S.rb.pad(0.25).contains(c)) { toast("This spot is outside the reserve map."); return; }
     addSighting(c.lat, c.lng, null);
   }
   S.placing = false;
@@ -890,7 +1000,7 @@ function endPlacing(commit) {
 $("placeGo").addEventListener("click", () => endPlacing(true));
 $("placeNo").addEventListener("click", () => endPlacing(false));
 
-/* ------------------------------ Overlay ----------------------------- */
+/* ------------------------------ Markers ----------------------------- */
 function pinSvg(an) {
   return `<svg width="46" height="46" viewBox="-23 -40 46 46" aria-hidden="true">
     <path d="M0 2 L-13 -14 A17 17 0 1 1 13 -14 Z" fill="${an.c}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
@@ -902,8 +1012,8 @@ function drawOverlay() {
   markerLayer.clearLayers();
   const now = Date.now(), exp = expiryMs();
   const vis = live().map(s => ({ s, pt:map.latLngToLayerPoint([s.lat, s.lng]) }));
-  // Deux animaux signalés au même endroit : on les écarte en éventail,
-  // sinon le dernier repère masque complètement les précédents.
+  // Several animals reported at the same spot are fanned out, otherwise
+  // the latest marker would completely hide the others.
   const buckets = new Map();
   vis.forEach(v => {
     const key = Math.round(v.pt.x / 20) + "," + Math.round(v.pt.y / 20);
@@ -933,7 +1043,7 @@ function drawOverlay() {
   drawGps();
 }
 
-// Position de l'observateur : point bleu + cercle de précision (en mètres réels).
+// Observer position: blue dot + accuracy circle (in real metres).
 function drawGps() {
   if (!map) return;
   if (!S.pos) {
@@ -951,6 +1061,7 @@ function drawGps() {
 }
 
 /* ------------------------------- Popup ------------------------------ */
+function fmtDist(m) { return m >= 1000 ? (m/1000).toFixed(1) + " km" : Math.round(m) + " m"; }
 function openPopup(id) {
   const s = sightings.find(x => x.id === id);
   if (!s) return;
@@ -958,9 +1069,7 @@ function openPopup(id) {
   const an = A[s.animal] || A.autre;
   let d = "";
   if (S.pos) {
-    const m = distance(S.pos.lat, S.pos.lng, s.lat, s.lng);
-    d = " · à " + (m >= 1000 ? (m/1000).toFixed(1) + " km" : Math.round(m) + " m")
-      + " " + bearing(S.pos.lat, S.pos.lng, s.lat, s.lng);
+    d = " · " + fmtDist(distance(S.pos.lat, S.pos.lng, s.lat, s.lng)) + " " + bearing(S.pos.lat, S.pos.lng, s.lat, s.lng);
   }
   const p = $("popup");
   p.innerHTML = `
@@ -970,12 +1079,12 @@ function openPopup(id) {
       <div class="sub">${ago(s.ts)}${d}</div>
       <div class="sub">${s.author ? esc(s.author) : s.lat.toFixed(5) + ", " + s.lng.toFixed(5)}</div>
       <div class="acts">
-        <button data-a="go">Centrer</button>
-        <button data-a="share">Partager</button>
-        ${mine(s) ? '<button data-a="del" class="del">Supprimer</button>' : ""}
+        <button data-a="go">Center</button>
+        <button data-a="share">Share</button>
+        ${mine(s) ? '<button data-a="del" class="del">Delete</button>' : ""}
       </div>
     </div>
-    <button class="x" data-a="close" aria-label="Fermer">✕</button>`;
+    <button class="x" data-a="close" aria-label="Close">✕</button>`;
   p.hidden = false;
   p.querySelector('[data-a="close"]').addEventListener("click", closePopup);
   const del = p.querySelector('[data-a="del"]');
@@ -993,7 +1102,7 @@ async function share(s) {
             + `https://maps.google.com/?q=${s.lat},${s.lng}`;
   try {
     if (navigator.share) await navigator.share({ title:an.nom, text:txt });
-    else { await navigator.clipboard.writeText(txt); toast("Copié dans le presse-papiers."); }
+    else { await navigator.clipboard.writeText(txt); toast("Copied to clipboard."); }
   } catch (e) {}
 }
 
@@ -1011,8 +1120,8 @@ function closeSheet() {
   sheetMode = null;
   setTimeout(() => {
     sheet.hidden = true; scrim.hidden = true;
-    // Le projet exige un compte et on n'en a pas : on revient à la connexion
-    // plutôt que de laisser l'app utilisable en silence, sans rien partager.
+    // The project requires an account and we have none: back to sign-in
+    // rather than leaving the app usable while sharing nothing.
     if (syncOn() && authRequired() && !loggedIn()) showLogin();
   }, 280);
 }
@@ -1045,39 +1154,41 @@ document.addEventListener("keydown", (e) => {
 
 function openHist() {
   sheetMode = "hist";
-  const all = known().slice().sort((x, y) => new Date(y.ts) - new Date(x.ts));
-  const nLive = live().length;
-  openSheet("Signalements", `${nLive} en cours · ${all.length} au total`);
-  const esp = new Set(live().map(s => s.animal)).size;
+  // Only sightings still valid: an animal seen more than LW_DISPLAY_HOURS
+  // ago has probably moved on. Admins keep the full history in the exports.
+  const all = live().slice().sort((x, y) => new Date(y.ts) - new Date(x.ts));
+  const nLive = all.length;
+  openSheet("Sightings", `${nLive} active`);
+  const esp = new Set(all.map(s => s.animal)).size;
   const last = all[0] ? ago(all[0].ts) : "—";
   const body = $("sheetBody");
   body.innerHTML = `
     <div class="stats">
-      <div class="stat"><div class="v">${nLive}</div><div class="k">En cours</div></div>
-      <div class="stat"><div class="v">${esp}</div><div class="k">Espèces</div></div>
-      <div class="stat"><div class="v" style="font-size:15px;padding-top:5px">${last}</div><div class="k">Dernier</div></div>
+      <div class="stat"><div class="v">${nLive}</div><div class="k">Active</div></div>
+      <div class="stat"><div class="v">${esp}</div><div class="k">Species</div></div>
+      <div class="stat"><div class="v" style="font-size:15px;padding-top:5px">${last}</div><div class="k">Latest</div></div>
     </div>
     <div class="rows" id="rows"></div>`;
   const rows = body.querySelector("#rows");
   if (!all.length) {
-    rows.innerHTML = `<div class="empty"><span class="e">🐾</span><p>Aucun signalement. Choisissez un animal puis appuyez sur le bouton vert : la position GPS est prise automatiquement.</p></div>`;
+    rows.innerHTML = `<div class="empty"><span class="e">🐾</span><p>No active sightings${dureeH() ? " (last " + dureeH() + " h)" : ""}. Choose an animal, then tap the green button: the GPS position is recorded automatically.</p></div>`;
     return;
   }
   all.forEach(s => {
     const an = A[s.animal] || A.autre;
-    const l = isLive(s);
     const btn = document.createElement("button");
     btn.className = "row-i"; btn.style.setProperty("--c", an.c);
+    const d = S.pos ? " · " + fmtDist(distance(S.pos.lat, S.pos.lng, s.lat, s.lng)) + " " + bearing(S.pos.lat, S.pos.lng, s.lat, s.lng) : "";
     btn.innerHTML = `
       <span class="e">${an.e}</span>
       <span class="m">
-        <span class="t">${an.nom} <span class="pill${l ? " live" : ""}">${l ? "en cours" : "expiré"}</span></span>
-        <span class="s">${ago(s.ts)}${s.author ? " · " + esc(s.author) : ""} · ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</span>
+        <span class="t">${an.nom}</span>
+        <span class="s">${ago(s.ts)}${s.author ? " · " + esc(s.author) : ""}${d}</span>
       </span>`;
     btn.addEventListener("click", () => {
       closeSheet();
       setFollow(false); centerOn(s.lat, s.lng, 16);
-      if (l) setTimeout(() => openPopup(s.id), 320);
+      setTimeout(() => openPopup(s.id), 320);
     });
     rows.appendChild(btn);
   });
@@ -1085,62 +1196,62 @@ function openHist() {
 
 function openSettings() {
   sheetMode = "set";
-  openSheet("Réglages", `${known().length} signalement${known().length > 1 ? "s" : ""}`);
+  openSheet("Settings", `${live().length} active`);
   const adm = isAdmin();
   $("sheetBody").innerHTML = `
     <div class="field">
-      <span class="label">Durée d'affichage des signalements</span>
+      <span class="label">How long sightings stay on the map</span>
       <p class="about" id="dureeInfo">${dureeH()
-        ? "Un repère reste sur la carte <strong>" + dureeH() + " h</strong>, puis disparaît : un animal vu il y a plus longtemps n'y est probablement plus. L'historique, lui, garde tout."
-        : "Les repères restent sur la carte sans limite de durée."}
-        Réglage commun à toute l'équipe.</p>
+        ? "A marker stays on the map for <strong>" + dureeH() + " h</strong>, then disappears: an animal seen longer ago has probably moved on."
+        : "Markers stay on the map with no time limit."}
+        Same setting for the whole team.</p>
     </div>
     <div class="field">
-      <span class="label">Fond de carte</span>
+      <span class="label">Map background</span>
       <div class="seg" id="segFond"></div>
-      <p class="about">Le plan des routes fonctionne partout, même sans réseau. Le satellite garde en mémoire les zones déjà affichées.</p>
+      <p class="about">The road map works everywhere, even without network. Satellite keeps the areas already displayed.</p>
     </div>
     <div class="field">
-      <span class="label">Thème</span>
+      <span class="label">Theme</span>
       <div class="seg" id="segTheme"></div>
     </div>
     ${authRequired() ? `
     <div class="field">
-      <span class="label">Compte</span>
+      <span class="label">Account</span>
       <div class="pos-card">
         <div>
-          <div class="coords">${esc(myName() || "non connecté")}</div>
-          <div class="acc">${adm ? "Accès administrateur" : "Guide"}</div>
+          <div class="coords">${esc(myName() || "not signed in")}</div>
+          <div class="acc">${adm ? "Administrator" : "Guide"}</div>
         </div>
-        <button type="button" id="setOut">Déconnexion</button>
+        <button type="button" id="setOut">Sign out</button>
       </div>
     </div>` : ""}
     ${adm ? `
     <div class="field">
-      <span class="label">Partage entre véhicules</span>
+      <span class="label">Sharing between vehicles</span>
       <div class="menu">
-        <button id="goSync"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6"/><path d="M4 18v-4h4M20 6v4h-4"/></svg>${syncOn() ? "Partage actif" : "Configurer le partage"}<span class="sub">${syncOn() ? esc(myName() || "sans nom") : "Supabase"}</span></button>
+        <button id="goSync"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.6M4 12a8 8 0 0 1 13.7-5.6"/><path d="M4 18v-4h4M20 6v4h-4"/></svg>${syncOn() ? "Sharing on" : "Set up sharing"}<span class="sub">${syncOn() ? esc(myName() || "no name") : "Supabase"}</span></button>
       </div>
     </div>
     <div class="field">
-      <span class="label">Données</span>
+      <span class="label">Data</span>
       <div class="menu">
-        <button id="expJson"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>Exporter les signalements<span class="sub">JSON</span></button>
-        <button id="expCsv"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>Exporter en CSV<span class="sub">Excel</span></button>
-        <button id="impJson"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 19h16"/></svg>Importer<span class="sub">JSON</span></button>
-        <button id="purge"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>Effacer les signalements expirés</button>
-        <button id="wipe" class="danger"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Tout effacer</button>
+        <button id="expJson"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>Export sightings<span class="sub">JSON</span></button>
+        <button id="expCsv"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>Export as CSV<span class="sub">Excel</span></button>
+        <button id="impJson"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M4 19h16"/></svg>Import<span class="sub">JSON</span></button>
+        <button id="purge"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>Clear expired sightings</button>
+        <button id="wipe" class="danger"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Delete everything</button>
       </div>
     </div>` : ""}
     <p class="about">
       ${adm
-        ? "Le partage et les exports ne sont visibles que depuis un compte administrateur. Les guides n'ont accès qu'à l'affichage."
-        : "Pour exporter les relevés, passez par un compte administrateur de la réserve."}
-      ${RES.info ? "<br><br>Carte : limite de Rietspruit et routes de Leadwood, Bloubank et Khaya Ndlovu." : ""}
+        ? "Sharing and exports are only visible to administrator accounts. Guides only get the display settings."
+        : "To export the records, use an administrator account."}
+      ${RES !== EMPTY ? "<br><br>Map: Rietspruit boundary and the Leadwood, Bloubank and Khaya Ndlovu roads." : ""}
     </p>`;
 
   const sf = $("segFond");
-  [["sat","Satellite"],["plan","Plan des routes"]].forEach(([id, nom]) => {
+  [["sat","Satellite"],["plan","Road map"]].forEach(([id, nom]) => {
     const btn = document.createElement("button");
     btn.type = "button"; btn.textContent = nom;
     btn.setAttribute("aria-pressed", String(prefs.fond === id));
@@ -1148,7 +1259,7 @@ function openSettings() {
     sf.appendChild(btn);
   });
   const st = $("segTheme");
-  [["auto","Automatique"],["light","Clair"],["dark","Sombre"]].forEach(([id, nom]) => {
+  [["auto","Automatic"],["light","Light"],["dark","Dark"]].forEach(([id, nom]) => {
     const btn = document.createElement("button");
     btn.type = "button"; btn.textContent = nom;
     btn.setAttribute("aria-pressed", String((prefs.theme || "auto") === id));
@@ -1158,37 +1269,37 @@ function openSettings() {
 
   const so = $("setOut");
   if (so) so.addEventListener("click", () => { signOut(); closeSheet(); showLogin(); });
-  if (!adm) return;                       // le reste n'existe que pour un administrateur
+  if (!adm) return;                       // the rest only exists for administrators
 
   $("goSync").addEventListener("click", openSync);
-  $("expJson").addEventListener("click", () => dl(`signalements-${stamp()}.json`, "application/json",
+  $("expJson").addEventListener("click", () => dl(`sightings-${stamp()}.json`, "application/json",
     JSON.stringify({ app:"leadwood-tracker", version:2, exported:new Date().toISOString(), sightings }, null, 2)));
   $("expCsv").addEventListener("click", () => {
     const esc2 = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
-    const rows = sightings.map(s => [s.ts, (A[s.animal]||A.autre).nom, s.lat, s.lng, s.acc == null ? "" : s.acc].map(esc2).join(";"));
-    dl(`signalements-${stamp()}.csv`, "text/csv;charset=utf-8",
-      "﻿" + ["date","animal","latitude","longitude","precision_m"].join(";") + "\n" + rows.join("\n"));
+    const rows = sightings.map(s => [s.ts, (A[s.animal]||A.autre).nom, s.lat, s.lng, s.acc == null ? "" : s.acc, s.author || "", s.deleted ? "yes" : ""].map(esc2).join(";"));
+    dl(`sightings-${stamp()}.csv`, "text/csv;charset=utf-8",
+      "﻿" + ["date","animal","latitude","longitude","accuracy_m","vehicle","deleted"].join(";") + "\n" + rows.join("\n"));
   });
   $("impJson").addEventListener("click", () => $("importInput").click());
   $("purge").addEventListener("click", () => {
     const before = known().length;
-    // Purge locale seulement : on ne supprime pas chez les autres véhicules.
+    // Local clean-up only: nothing is deleted on the other vehicles.
     sightings = sightings.filter(s => isLive(s) || (s.deleted && s.sync !== "ok"));
     lsSet(K_SIGHT, sightings); drawOverlay(); updateCount(); setSync(); openSettings();
-    toast(`${before - known().length} signalement(s) expiré(s) retiré(s) de cet appareil.`);
+    toast(`${before - known().length} expired sighting(s) removed from this device.`);
   });
   $("wipe").addEventListener("click", () => {
     const n = known().length;
     const nMine = known().filter(mine).length;
     if (!confirm(syncOn()
       ? (authRequired()
-          ? `Supprimer vos ${nMine} signalements chez tout le monde ? Ceux des autres véhicules resteront.`
-          : `Supprimer les ${n} signalements — y compris chez les autres véhicules ?`)
-      : `Supprimer les ${n} signalements ?`)) return;
+          ? `Delete your ${nMine} sightings for everyone? Other vehicles' sightings will stay.`
+          : `Delete all ${n} sightings — including on the other vehicles?`)
+      : `Delete all ${n} sightings?`)) return;
     if (syncOn()) {
       const now = new Date().toISOString();
-      // On ne marque que ce qu'on a le droit de modifier : une ligne d'un
-      // autre véhicule serait refusée et bloquerait toute la file.
+      // Only mark what we may change: another vehicle's row would be
+      // refused and block the whole queue.
       sightings = sightings.map(s => mine(s)
         ? Object.assign({}, s, { deleted:true, upd:now, sync:"pending" })
         : s);
@@ -1196,7 +1307,7 @@ function openSettings() {
     } else { sightings = []; }
     lsSet(K_SIGHT, sightings);
     drawOverlay(); updateCount(); setSync(); closeSheet();
-    toast("Tous les signalements ont été supprimés.");
+    toast("Sightings deleted.");
   });
 }
 
@@ -1209,14 +1320,14 @@ $("importInput").addEventListener("change", (e) => {
     try {
       const d = JSON.parse(r.result);
       const inc = Array.isArray(d) ? d : (d.sightings || []);
-      const known = new Set(sightings.map(s => s.id));
-      const add = inc.filter(s => s && s.lat != null && s.lng != null && !known.has(s.id));
+      const have = new Set(sightings.map(s => s.id));
+      const add = inc.filter(s => s && s.lat != null && s.lng != null && !have.has(s.id));
       sightings = add.concat(sightings);
       lsSet(K_SIGHT, sightings);
       drawOverlay(); updateCount();
-      toast(`${add.length} signalement(s) importé(s).`);
+      toast(`${add.length} sighting(s) imported.`);
       if (sheetMode === "set") openSettings();
-    } catch (err) { toast("Fichier illisible."); }
+    } catch (err) { toast("Unreadable file."); }
   };
   r.readAsText(f);
 });
@@ -1225,23 +1336,23 @@ $("btnHist").addEventListener("click", openHist);
 $("btnSet").addEventListener("click", openSettings);
 $("sync").addEventListener("click", () => {
   if (isAdmin()) { openSync(); return; }
-  toast(etatPartage());
+  toast(sharingState());
 });
-function etatPartage() {
-  if (!syncOn()) return "Partage inactif sur ce téléphone.";
-  if (authRequired() && !loggedIn()) return "Connexion requise pour partager.";
-  if (!navigator.onLine) return "Hors ligne : les signalements partiront au retour du réseau.";
-  if (lastErr) return "Partage en erreur — " + lastErr;
-  return "Partage actif : vos signalements parviennent aux autres véhicules.";
+function sharingState() {
+  if (!syncOn()) return "Sharing is off on this phone.";
+  if (authRequired() && !loggedIn()) return "Sign-in required to share.";
+  if (!navigator.onLine) return "Offline: your sightings will be sent when the network is back.";
+  if (lastErr) return "Sharing error — " + lastErr;
+  return "Sharing on: your sightings reach the other vehicles.";
 }
 
 /* =================================================================== *
- *  Partage entre véhicules
+ *  Sharing between vehicles
  *
- *  Hors ligne d'abord : l'appareil reste maître de ses données. Ce qui
- *  n'est pas encore parti attend dans la file et repart au retour du
- *  réseau. La relève se fait par sondage (12 s) plutôt que par
- *  WebSocket : en brousse, une connexion permanente tombe sans arrêt.
+ *  Offline first: the device keeps its own data. Anything not sent yet
+ *  waits in the queue and goes out when the network is back. Pulling
+ *  is done by polling (12 s) rather than a WebSocket: in the bush, a
+ *  permanent connection drops all the time.
  * =================================================================== */
 const K_SYNC = "lw.sync.v1", K_CURSOR = "lw.sync.cursor", K_SESSION = "lw.session.v1";
 let sync = lsGet(K_SYNC, null);          // { url, key, author, auth }
@@ -1253,34 +1364,33 @@ function syncOn() { return !!(sync && sync.url && sync.key); }
 function base() { return sync.url.replace(/\/+$/, ""); }
 function api(path) { return base() + "/rest/v1/" + path; }
 
-/* ------------------------------ Comptes ----------------------------- */
+/* ------------------------------ Accounts ---------------------------- */
 function loggedIn() { return !!(session && session.access_token); }
 function me() { return (session && session.user) || null; }
 function myName() {
   const u = me();
   if (!u) return (sync && sync.author) || null;
-  // Le nom vient d'abord du compte, sinon du véhicule choisi à la connexion
-  // (config.js), et en dernier recours de l'adresse du compte.
-  return (u.user_metadata && u.user_metadata.vehicule)
-      || vehiculeDuCompte(u.email)
+  // The name comes from the vehicle list (config.js), then from the
+  // account metadata, and as a last resort from the account address.
+  return vehicleOf(u.email)
+      || (u.user_metadata && u.user_metadata.vehicule)
       || u.email || null;
 }
-function vehiculeDuCompte(email) {
+function vehicleOf(email) {
   const v = vehicules().find(x => x.email === email);
   return v ? v.nom : null;
 }
 
-/* Un guide n'a pas à toucher au calage, à la carte, ni aux exports : une
-   fausse manœuvre en pleine sortie décalerait les repères de tout le monde,
-   et un export CSV des positions n'a rien à faire sur son téléphone.
-   Les comptes administrateurs sont désignés dans config.js (admin: true),
-   ou par la métadonnée « admin » du compte Supabase.
-   Sans comptes du tout, l'appareil est seul maître : tout est accessible. */
+/* A guide has no business touching sharing or exports: administrator
+   accounts are flagged in config.js (admin: true). This only hides
+   buttons; what an account may read or change is enforced by the
+   server (row-level security). Without accounts, the device is on its
+   own and everything is available. */
 function isAdmin() {
   if (!authRequired()) return true;
   const u = me();
   if (!u) return false;
-  if (u.user_metadata && u.user_metadata.admin === true) return true;
+  if (u.app_metadata && u.app_metadata.admin === true) return true;
   const v = vehicules().find(x => x.email === u.email);
   return !!(v && v.admin === true);
 }
@@ -1297,14 +1407,15 @@ function setSession(d) {
 }
 function signOut(silent) {
   session = null; lsSet(K_SESSION, null);
-  if (!silent) toast("Déconnecté.");
+  forgetReserve();
+  if (!silent) toast("Signed out.");
   setSync();
   if (authRequired()) showLogin();
 }
 
-// Le jeton d'accès est court (une heure) : on le renouvelle avant qu'il
-// n'expire. Un échec réseau ne déconnecte pas — on réessaiera plus tard ;
-// seul un refus explicite du serveur invalide la session.
+// The access token is short-lived (one hour): renew it before it expires.
+// A network failure does not sign out — we retry later; only an explicit
+// refusal from the server ends the session.
 let refreshing = null;
 
 async function ensureToken() {
@@ -1313,10 +1424,9 @@ async function ensureToken() {
   if (session.expires_at && session.expires_at - 60 > now) return session.access_token;
   if (!session.refresh_token) { signOut(true); return null; }
 
-  // Un seul rafraîchissement à la fois. Supabase invalide le jeton de
-  // rafraîchissement dès qu'il a servi : deux appels simultanés — cas
-  // courant, l'envoi et la relève partant ensemble — se détruiraient
-  // mutuellement et déconnecteraient le guide sans raison apparente.
+  // One refresh at a time. Supabase invalidates a refresh token once used:
+  // two simultaneous calls (push and pull often start together) would
+  // destroy each other and sign the guide out for no visible reason.
   if (!refreshing) {
     refreshing = (async () => {
       try {
@@ -1330,7 +1440,7 @@ async function ensureToken() {
         setSession(await r.json());
         return session.access_token;
       } catch (e) {
-        return null;                     // hors ligne : on garde la session
+        return null;                     // offline: keep the session
       } finally {
         refreshing = null;
       }
@@ -1349,12 +1459,12 @@ async function signIn(email, password) {
   if (!r.ok) {
     const msg = (d.error_description || d.msg || d.message || "").toLowerCase();
     if (msg.indexOf("credential") >= 0 || msg.indexOf("invalid") >= 0) {
-      throw new Error("Identifiant ou mot de passe incorrect.");
+      throw new Error("Wrong vehicle or password.");
     }
     if (msg.indexOf("confirm") >= 0) {
-      throw new Error("Ce compte n'est pas confirmé. Validez-le depuis le tableau de bord Supabase.");
+      throw new Error("This account is not confirmed. Confirm it in the Supabase dashboard.");
     }
-    throw new Error("Connexion refusée par le serveur.");
+    throw new Error("Sign-in refused by the server.");
   }
   setSession(d);
   return session;
@@ -1364,9 +1474,8 @@ async function heads(extra) {
   const h = { "apikey": sync.key, "Content-Type": "application/json" };
   const tok = await ensureToken();
   if (tok) h["Authorization"] = "Bearer " + tok;
-  // Sans compte, on retombe sur la clé partagée. Les clés historiques sont
-  // des JWT (« eyJ… ») et passent en Bearer ; les nouvelles clés
-  // « publishable » n'en sont pas et ne doivent pas y être mises.
+  // Without an account, fall back on the shared key. Legacy keys are JWTs
+  // ("eyJ…") and go in Bearer; the new "publishable" keys are not.
   else if (/^eyJ/.test(sync.key)) h["Authorization"] = "Bearer " + sync.key;
   return Object.assign(h, extra || {});
 }
@@ -1388,8 +1497,8 @@ function fromRemote(r) {
     deleted:!!r.deleted, upd:r.updated_at || r.ts, sync:"ok"
   };
 }
-// Un signalement d'un autre véhicule ne peut pas être modifié : la
-// politique RLS le refuserait et bloquerait toute la file d'envoi.
+// Another vehicle's sighting cannot be changed: the RLS policy would
+// refuse it and block the whole send queue.
 function mine(s) {
   if (!authRequired()) return true;
   if (!s.author_id) return true;
@@ -1402,20 +1511,19 @@ async function syncTest(url, key) {
   if (/^eyJ/.test(key)) hh.Authorization = "Bearer " + key;
   const res = await fetch(u, { headers:hh });
   if (res.status === 200) return { ok:true, auth:false };
-  if (res.status === 404) return { ok:false, msg:"Table « sightings » introuvable : exécutez le script SQL dans Supabase." };
+  if (res.status === 404) return { ok:false, msg:"Table \"sightings\" not found: run the SQL script in Supabase." };
 
-  // Accès refusé à la clé seule : c'est le mode sécurisé, pas une panne.
-  // PostgREST répond 401 ou 403 selon les cas (« permission denied »,
-  // code 42501, ou absence de jeton) ; on ne fait pas la différence, on
-  // écarte seulement le cas d'une clé réellement invalide.
+  // Access refused to the key alone: that is the secured mode, not a
+  // failure. PostgREST answers 401 or 403 depending on the case; we only
+  // rule out a key that is actually invalid.
   if (res.status === 401 || res.status === 403) {
     const body = await res.text().catch(() => "");
     if (/invalid api key|invalid_api_key|no api key/i.test(body)) {
-      return { ok:false, msg:"Clé refusée par Supabase : vérifiez la clé « anon public »." };
+      return { ok:false, msg:"Key refused by Supabase: check the publishable key." };
     }
     return { ok:true, auth:true };
   }
-  return { ok:false, msg:"Réponse inattendue du serveur (" + res.status + ")." };
+  return { ok:false, msg:"Unexpected server response (" + res.status + ")." };
 }
 
 async function syncCycle(force) {
@@ -1424,7 +1532,7 @@ async function syncCycle(force) {
   if (!navigator.onLine && !force) { setSync(); return; }
   syncing = true;
   try {
-    // 1. envoyer ce qui attend
+    // 1. send what is waiting
     const out = sightings.filter(s => s.sync !== "ok" && s.sync !== "refuse").map(toRemote);
     if (out.length) {
       const res = await fetch(api("sightings"), {
@@ -1435,31 +1543,31 @@ async function syncCycle(force) {
       if (res.status === 401) return needLogin();
       if (res.status === 403) {
         const body = await res.text().catch(() => "");
-        // Une ligne refusée par la sécurité au niveau des lignes n'est pas
-        // un problème de session : la remettre en file bloquerait tout le
-        // reste indéfiniment. On l'écarte et on prévient une fois.
+        // A row refused by row-level security is not a session problem:
+        // re-queuing it would block everything else forever. Set it aside
+        // and warn once.
         if (/row-level security|violates/i.test(body)) {
           const ids = new Set(out.map(o => o.id));
           sightings.forEach(s => { if (ids.has(s.id)) s.sync = "refuse"; });
           lsSet(K_SIGHT, sightings);
-          toast("Un signalement n'a pas pu être partagé : il appartient à un autre véhicule.");
+          toast("A sighting could not be shared: it belongs to another vehicle.");
           return;
         }
         return needLogin();
       }
-      if (!res.ok) throw new Error("envoi " + res.status + " " + (await res.text()).slice(0, 120));
+      if (!res.ok) throw new Error("send " + res.status + " " + (await res.text()).slice(0, 120));
       const sent = new Set(out.map(o => o.id));
       sightings.forEach(s => { if (sent.has(s.id)) s.sync = "ok"; });
       lsSet(K_SIGHT, sightings);
     }
 
-    // 2. relever ce que les autres ont posté
+    // 2. pull what the others posted
     const since = cursor || new Date(Date.now() - 7 * 864e5).toISOString();
     const q = "sightings?select=*&updated_at=gt." + encodeURIComponent(since)
             + "&order=updated_at.asc&limit=500";
     const res2 = await fetch(api(q), { headers:await heads() });
     if (res2.status === 401 || res2.status === 403) return needLogin();
-    if (!res2.ok) throw new Error("relève " + res2.status);
+    if (!res2.ok) throw new Error("pull " + res2.status);
     const rows = await res2.json();
     let changed = false;
     rows.forEach(r => {
@@ -1487,7 +1595,7 @@ async function syncCycle(force) {
   }
 }
 
-function purgeTombstones() {                 // les suppressions n'ont plus à voyager après 7 jours
+function purgeTombstones() {                 // deletions no longer need to travel after 7 days
   const cut = Date.now() - 7 * 864e5;
   sightings = sightings.filter(s => !(s.deleted && new Date(s.upd || s.ts).getTime() < cut));
 }
@@ -1498,11 +1606,11 @@ function setSync() {
   const wait = sightings.filter(s => s.sync !== "ok" && s.sync !== "refuse").length;
   let cls = "local", txt = "Local";
   if (syncOn()) {
-    if (authRequired() && !loggedIn()) { cls = "error"; txt = "Connexion requise"; }
-    else if (!navigator.onLine) { cls = "wait"; txt = wait ? wait + " en attente" : "Hors ligne"; }
-    else if (wait) { cls = "wait"; txt = wait + " en attente"; }
-    else if (lastErr) { cls = "error"; txt = "Partage en erreur"; }
-    else { cls = "ok"; txt = "Partagé"; }
+    if (authRequired() && !loggedIn()) { cls = "error"; txt = "Sign-in required"; }
+    else if (!navigator.onLine) { cls = "wait"; txt = wait ? wait + " waiting" : "Offline"; }
+    else if (wait) { cls = "wait"; txt = wait + " waiting"; }
+    else if (lastErr) { cls = "error"; txt = "Sharing error"; }
+    else { cls = "ok"; txt = "Shared"; }
   }
   el.className = "badge " + cls;
   el.innerHTML = '<span class="led"></span>' + txt;
@@ -1514,20 +1622,23 @@ function startSync() {
   syncCycle(true);
   syncTimer = setInterval(() => { if (!document.hidden) syncCycle(); }, 12000);
 }
-window.addEventListener("online", () => syncCycle(true));
+window.addEventListener("online", () => { syncCycle(true); if (S.rendered && RES === EMPTY) loadReserve(); });
 window.addEventListener("offline", setSync);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncCycle(true); });
 
-/* -------------------------- Écran de connexion ---------------------- */
+/* ------------------------------ Sign-in ----------------------------- */
 let loginResolve = null;
 
-/* Liste des véhicules déclarée dans config.js. Renseignée, le guide n'a
-   qu'un mot de passe à taper : l'adresse du compte est déduite du véhicule
-   choisi, et n'apparaît jamais à l'écran. Vide, on retombe sur la saisie
-   classique e-mail + mot de passe. */
+/* Vehicle list declared in config.js. When filled in, the guide only
+   types a password: the account address is taken from the chosen
+   vehicle and never shown. When empty, the app asks for email +
+   password. Both "name" and the older "nom" keys are accepted. */
 function vehicules() {
-  const v = window.LW_VEHICULES;
-  return Array.isArray(v) ? v.filter(x => x && x.nom && x.email) : [];
+  const v = window.LW_VEHICLES || window.LW_VEHICULES;
+  return Array.isArray(v)
+    ? v.map(x => x && ({ nom:x.name || x.nom, email:x.email, admin:x.admin === true }))
+       .filter(x => x && x.nom && x.email)
+    : [];
 }
 const K_VEH = "lw.vehicule";
 
@@ -1555,12 +1666,12 @@ function showLogin() {
     } catch (e) {}
     sel.value = String(last);
     sel.hidden = false; mail.hidden = true;
-    $("loginSub").textContent = "Choisissez votre véhicule, puis entrez son mot de passe.";
+    $("loginSub").textContent = "Choose your vehicle, then enter its password.";
     setTimeout(() => $("loginPass").focus(), 120);
   } else {
     sel.hidden = true; mail.hidden = false;
     mail.value = (me() && me().email) || "";
-    $("loginSub").textContent = "Votre compte guide donne accès aux signalements de l'équipe.";
+    $("loginSub").textContent = "Your guide account gives access to the team's sightings.";
     setTimeout(() => { $(mail.value ? "loginPass" : "loginEmail").focus(); }, 120);
   }
 }
@@ -1589,35 +1700,35 @@ function needLogin() {
       const v = vs[parseInt($("loginVeh").value, 10)] || vs[0];
       email = v.email; nom = v.nom;
     }
-    btn.disabled = true; btn.textContent = "Connexion…";
+    btn.disabled = true; btn.textContent = "Signing in…";
     try {
       await signIn(email, $("loginPass").value);
       if (nom) { try { localStorage.setItem(K_VEH, email); } catch (e) {} }
       if (!sync.auth) { sync.auth = true; lsSet(K_SYNC, sync); }
       $("loginPass").value = "";
+      const waiting = !!loginResolve;
       endLogin(true);
-      toast("Connecté — " + (myName() || ""));
+      toast("Signed in — " + (myName() || ""));
       setSync(); startSync();
-      enterMap();
+      if (!waiting) enterMap();          // otherwise boot() carries on
     } catch (e) {
       $("loginErr").textContent = e.message;
       $("loginErr").hidden = false;
       $("loginPass").value = "";
-    } finally { btn.disabled = false; btn.textContent = "Se connecter"; }
+    } finally { btn.disabled = false; btn.textContent = "Sign in"; }
   };
   $("loginGo").addEventListener("click", go);
   $("loginPass").addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
-  // Pas d'échappatoire en un geste : un guide qui contournerait la connexion
-  // croirait signaler alors que personne ne recevrait rien. On ne propose
-  // que de corriger le projet visé — et la désactivation franche du partage
-  // reste disponible dans l'écran qui s'ouvre, pour qui la veut vraiment.
+  // No one-tap escape: a guide who bypassed sign-in would think they were
+  // reporting while nobody received anything. We only offer to fix the
+  // target project.
   $("loginSkip").addEventListener("click", () => {
     $("login").hidden = true;
     openSync();
   });
 })();
 
-/* ------------------- Écran de partage (réglages) -------------------- */
+/* ---------------------- Sharing screen (admin) ---------------------- */
 const SQL = `create table if not exists sightings (
   id uuid primary key,
   animal text not null,
@@ -1639,55 +1750,51 @@ create policy "maj" on sightings for update to anon using (true) with check (tru
 
 function openSync() {
   sheetMode = "sync";
-  openSheet("Partage entre véhicules", syncOn() ? "actif" : "inactif");
+  openSheet("Sharing between vehicles", syncOn() ? "on" : "off");
   const s = sync || { url:"", key:"", author:"" };
   $("sheetBody").innerHTML = `
-    ${lastErr ? `<p class="check warn"><span>⚠</span><span>Dernière erreur de partage : ${esc(lastErr)}</span></p>` : ""}
+    ${lastErr ? `<p class="check warn"><span>⚠</span><span>Last sharing error: ${esc(lastErr)}</span></p>` : ""}
     ${authRequired() ? `
     <div class="field">
-      <span class="label">Compte</span>
+      <span class="label">Account</span>
       <div class="pos-card">
         <div>
-          <div class="coords">${esc(myName() || "non connecté")}</div>
-          <div class="acc">${loggedIn() ? esc((me() && me().email) || "") : "Connectez-vous pour rejoindre le partage"}</div>
+          <div class="coords">${esc(myName() || "not signed in")}</div>
+          <div class="acc">${loggedIn() ? esc((me() && me().email) || "") : "Sign in to join the sharing"}</div>
         </div>
-        <button type="button" id="syAuth">${loggedIn() ? "Déconnexion" : "Connexion"}</button>
+        <button type="button" id="syAuth">${loggedIn() ? "Sign out" : "Sign in"}</button>
       </div>
-      <p class="about">Les comptes se créent et se désactivent depuis le tableau de bord Supabase, section <strong>Authentication</strong>. Le nom du véhicule vient du champ <code>vehicule</code> des métadonnées du compte.</p>
+      <p class="about">Accounts are created and removed in the Supabase dashboard, under <strong>Authentication</strong>. The vehicle name comes from the list in config.js.</p>
     </div>` : `
     <div class="field">
-      <span class="label">Nom de ce véhicule</span>
+      <span class="label">Name of this vehicle</span>
       <input class="inp" type="text" id="syAuthor" placeholder="Land Cruiser 2 — Jaco" value="${esc(s.author)}">
-      <p class="about">Affiché sur chaque repère que vous postez, pour que les autres sachent qui a vu l'animal. Non vérifié : tant que les comptes ne sont pas activés, chacun saisit ce qu'il veut.</p>
+      <p class="about">Shown on every marker you post, so the others know who saw the animal. Not verified while accounts are not enabled.</p>
     </div>`}
     <div class="field">
-      <span class="label">Projet Supabase</span>
+      <span class="label">Supabase project</span>
       <input class="inp" type="text" id="syUrl" placeholder="https://xxxxxxxx.supabase.co" value="${esc(s.url)}" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <input class="inp" type="text" id="syKey" placeholder="Clé anon public (eyJ...)" value="${esc(s.key)}" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <input class="inp" type="text" id="syKey" placeholder="Publishable key (sb_publishable_…)" value="${esc(s.key)}" autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
     <div style="display:flex;gap:10px">
-      ${syncOn() ? '<button class="btn-ghost" id="syOff" style="flex:0 0 auto">Désactiver</button>' : ""}
-      <button class="btn" id="syGo">${syncOn() ? "Vérifier et enregistrer" : "Activer le partage"}</button>
+      ${syncOn() ? '<button class="btn-ghost" id="syOff" style="flex:0 0 auto">Turn off</button>' : ""}
+      <button class="btn" id="syGo">${syncOn() ? "Check and save" : "Turn on sharing"}</button>
     </div>
     ${syncOn() ? `
     <div class="field">
-      <span class="label">Équiper les autres véhicules</span>
+      <span class="label">Set up other vehicles</span>
       <div class="menu">
-        <button id="syLink"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Copier le lien de configuration</button>
+        <button id="syLink"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Copy the setup link</button>
       </div>
       <p class="about">${authRequired()
-        ? "Ce lien configure le téléphone du guide ; il devra ensuite se connecter avec son propre compte. La clé seule ne donne accès à rien."
-        : "Ce lien contient le projet et la clé : envoyé à un guide, il configure son téléphone en une tape. À ne pas publier en ligne."}</p>
+        ? "This link sets up the guide's phone; they then sign in with their own account. The key alone gives access to nothing."
+        : "This link contains the project and the key: sent to a guide, it sets up their phone in one tap. Do not publish it online."}</p>
     </div>` : ""}
     <div class="field">
-      <span class="label">Script à exécuter une fois dans Supabase</span>
-      <div class="menu"><button id="sySql"><svg viewBox="0 0 24 24"><path d="M9 9h10M9 15h10M5 9h.01M5 15h.01"/><rect x="2.5" y="4" width="19" height="16" rx="3"/></svg>Copier le script SQL<span class="sub">table + accès</span></button></div>
-      <p class="about">À coller dans <strong>SQL Editor</strong> puis exécuter. Sans ce script, la table n'existe pas et l'activation échouera.</p>
-    </div>
-    <p class="about">
-      La clé « anon » n'est pas dans le dépôt GitHub : seuls les appareils que vous configurez peuvent lire et
-      écrire. Si elle circule au-delà de votre équipe, régénérez-la depuis Supabase et reconfigurez les téléphones.
-    </p>`;
+      <span class="label">Script to run once in Supabase</span>
+      <div class="menu"><button id="sySql"><svg viewBox="0 0 24 24"><path d="M9 9h10M9 15h10M5 9h.01M5 15h.01"/><rect x="2.5" y="4" width="19" height="16" rx="3"/></svg>Copy the SQL script<span class="sub">table + access</span></button></div>
+      <p class="about">Paste it in <strong>SQL Editor</strong> and run it. Without it, the table does not exist and sharing cannot be turned on.</p>
+    </div>`;
 
   const authBtn = $("syAuth");
   if (authBtn) authBtn.addEventListener("click", () => {
@@ -1698,36 +1805,36 @@ function openSync() {
   $("syGo").addEventListener("click", async () => {
     const url = $("syUrl").value.trim(), key = $("syKey").value.trim();
     const author = $("syAuthor") ? $("syAuthor").value.trim() : (sync && sync.author) || "";
-    if (!/^https?:\/\/.+/.test(url) || key.length < 20) { toast("URL du projet ou clé incomplète."); return; }
-    $("syGo").textContent = "Vérification…"; $("syGo").disabled = true;
+    if (!/^https?:\/\/.+/.test(url) || key.length < 20) { toast("Project URL or key incomplete."); return; }
+    $("syGo").textContent = "Checking…"; $("syGo").disabled = true;
     let r;
     try { r = await syncTest(url, key); }
-    catch (e) { r = { ok:false, msg:"Serveur injoignable : vérifiez l'URL et le réseau." }; }
+    catch (e) { r = { ok:false, msg:"Server unreachable: check the URL and the network." }; }
     $("syGo").disabled = false;
-    if (!r.ok) { $("syGo").textContent = "Activer le partage"; toast(r.msg); return; }
+    if (!r.ok) { $("syGo").textContent = "Turn on sharing"; toast(r.msg); return; }
     sync = { url, key, author, auth:!!r.auth };
     lsSet(K_SYNC, sync);
     sightings.forEach(s => { if (!s.author) s.author = author; s.sync = "pending"; });
     lsSet(K_SIGHT, sightings);
     if (r.auth && !loggedIn()) {
       closeSheet();
-      toast("Ce projet demande un compte.");
+      toast("This project requires an account.");
       showLogin();
       return;
     }
     startSync();
     openSync();
-    toast("Partage activé. Vos signalements partent vers les autres véhicules.");
+    toast("Sharing on. Your sightings go to the other vehicles.");
   });
 
   const off = $("syOff");
   if (off) off.addEventListener("click", () => {
     if (authRequired() && !confirm(
-      "Désactiver le partage ? Vos signalements resteront sur cet appareil et "
-      + "ne parviendront à aucun autre véhicule.")) return;
+      "Turn sharing off? Your sightings will stay on this device and "
+      + "will reach no other vehicle.")) return;
     sync = null; lsSet(K_SYNC, null); session = null; lsSet(K_SESSION, null);
     clearInterval(syncTimer); setSync(); openSync();
-    toast("Partage désactivé : l'app repasse en local.");
+    toast("Sharing off: the app is back to local mode.");
   });
 
   const lk = $("syLink");
@@ -1735,19 +1842,19 @@ function openSync() {
     const payload = btoa(unescape(encodeURIComponent(JSON.stringify({ u:sync.url, k:sync.key }))));
     const link = location.origin + location.pathname + "#c=" + payload;
     try {
-      if (navigator.share) await navigator.share({ title:"Leadwood Tracker", text:"Configuration du partage", url:link });
-      else { await navigator.clipboard.writeText(link); toast("Lien copié. À envoyer aux autres guides."); }
+      if (navigator.share) await navigator.share({ title:"Leadwood Tracker", text:"Sharing setup", url:link });
+      else { await navigator.clipboard.writeText(link); toast("Link copied. Send it to the other guides."); }
     } catch (e) {}
   });
 
   $("sySql").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(SQL); toast("Script SQL copié."); }
+    try { await navigator.clipboard.writeText(SQL); toast("SQL script copied."); }
     catch (e) { alert(SQL); }
   });
 }
 
-/* Le projet déclaré dans config.js fait foi : chaque téléphone est
-   configuré d'office, sans lien à envoyer ni réglage à saisir. */
+/* The project declared in config.js wins: every phone is set up
+   automatically, with no link to send and nothing to type. */
 function preset() {
   const c = window.LW_SUPABASE;
   return (c && c.url && c.key) ? c : null;
@@ -1772,16 +1879,16 @@ function applyConfigLink() {
     sync = { url:d.u, key:d.k, author:(sync && sync.author) || "" };
     lsSet(K_SYNC, sync);
     history.replaceState(null, "", location.pathname);
-    setTimeout(() => toast("Partage configuré. Indiquez le nom de votre véhicule dans les réglages."), 900);
+    setTimeout(() => toast("Sharing set up. Enter your vehicle name in the settings."), 900);
     return true;
   } catch (e) { return false; }
 }
 
-/* ------------------------------ Utilitaires ------------------------- */
+/* ------------------------------ Utilities --------------------------- */
 function uid() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  // Repli pour les anciens iPhone : un UUID v4 valide, sinon la base le refuse
-  // et bloque toute la file d'envoi.
+  // Fallback for older iPhones: a valid v4 UUID, otherwise the database
+  // refuses it and blocks the whole send queue.
   const b = new Uint8Array(16);
   (window.crypto || {}).getRandomValues ? crypto.getRandomValues(b)
     : b.forEach((_, i) => { b[i] = Math.floor(Math.random() * 256); });
@@ -1794,10 +1901,10 @@ function esc(s) {
 }
 function ago(iso) {
   const d = Date.now() - new Date(iso).getTime();
-  if (d < 6e4) return "à l'instant";
-  if (d < 36e5) return "il y a " + Math.round(d / 6e4) + " min";
-  if (d < 864e5) return "il y a " + Math.round(d / 36e5) + " h";
-  return new Date(iso).toLocaleString("fr-BE", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+  if (d < 6e4) return "just now";
+  if (d < 36e5) return Math.round(d / 6e4) + " min ago";
+  if (d < 864e5) return Math.round(d / 36e5) + " h ago";
+  return new Date(iso).toLocaleString("en-GB", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
 }
 function stamp() { return new Date().toISOString().slice(0, 10); }
 function dl(name, mime, text) {
@@ -1806,7 +1913,7 @@ function dl(name, mime, text) {
   a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  toast("Fichier généré : " + name);
+  toast("File created: " + name);
 }
 let tt;
 function toast(msg) {
@@ -1822,20 +1929,19 @@ function applyTheme() {
 
 /* -------------------------------- Boot ------------------------------ */
 applyTheme();
-applyConfigLink();      // lien « #c=… » envoyé par un autre véhicule
-applyPreset();          // projet Supabase déclaré dans config.js
+applyConfigLink();      // "#c=…" link sent by another vehicle
+applyPreset();          // Supabase project declared in config.js
 updateCount();
 setSync();
 startSync();
 
-// Rafraîchit l'estompement des repères et les « il y a X min ».
+// Refreshes marker fading and the "x min ago" labels.
 setInterval(() => { if (S.rendered) { drawOverlay(); updateCount(); } }, 60000);
 
 (async function boot() {
   await gate();
-  // Comptes exigés par le serveur : pas de carte avant la connexion.
+  // Accounts required by the server: no map before signing in.
   if (syncOn() && authRequired() && !loggedIn()) await waitLogin();
-
   enterMap();
 })();
 

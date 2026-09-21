@@ -1,70 +1,65 @@
 /* ------------------------------------------------------------------ *
- *  Leadwood Tracker — réglages modifiables sans toucher à l'application
+ *  Leadwood Tracker — settings you can change without touching the app
+ *  (edit on GitHub with the pencil icon, then "Commit changes").
  * ------------------------------------------------------------------ */
 
-/*  Mot de passe d'ouverture de l'application.
+/*  App opening password.
  *
- *  On ne met pas le mot de passe ici, mais son empreinte SHA-256.
- *  Pour en calculer une nouvelle, ouvrez la page  motdepasse.html
- *  de ce même site, tapez le mot de passe voulu, et recopiez la ligne
- *  qu'elle affiche à la place de celle ci-dessous.
+ *  Not the password itself but its SHA-256 hash. To make a new one,
+ *  open  password.html  on this same site, type the password you want
+ *  and copy the line it shows in place of the one below.
  *
- *  Chaîne vide  ->  aucun mot de passe demandé.
+ *  Empty string  ->  no password asked.
  *
- *  ATTENTION : ce contrôle s'exécute dans le navigateur et peut être
- *  contourné en lisant le code de la page. Il écarte le passant qui
- *  tombe sur l'adresse ; la vraie protection, ce sont les comptes
- *  Supabase, qui eux sont vérifiés par le serveur.
+ *  WARNING: this check runs in the browser and can be bypassed by
+ *  reading the page's code. It keeps casual visitors out; the real
+ *  protection is the Supabase accounts, which the server checks.
  */
 window.LW_GATE_HASH = "";
 
-/*  Projet Supabase de la réserve.
+/*  The reserve's Supabase project.
  *
- *  Renseigné ici, chaque téléphone le connaît d'office : le guide n'a rien
- *  à configurer, il choisit son véhicule et tape son mot de passe.
- *  La clé « publishable » est faite pour être publique : elle ne donne
- *  accès à rien sans compte, les données étant protégées par les
- *  politiques de sécurité (script supabase-comptes.sql).
- *  Ne JAMAIS mettre ici la clé « secret » / « service_role ».
+ *  Declared here, every phone knows it automatically: the guide has
+ *  nothing to set up, they pick their vehicle and type its password.
+ *  The "publishable" key is meant to be public: without an account it
+ *  gives access to nothing (see supabase-accounts.sql).
+ *  NEVER put the "secret" / "service_role" key here.
  */
 window.LW_SUPABASE = {
   url: "https://jxijcxlaadtdlefussob.supabase.co",
   key: "sb_publishable_Nd-B8xHPCT29JRP2oNMeVw_915DI8PP"
 };
 
-/*  Durée d'affichage d'un signalement, en heures, pour toute l'équipe.
+/*  How long a sighting stays on the map, in hours, for the whole team.
  *
- *  Passé ce délai, le repère disparaît de la carte de tous les véhicules
- *  (l'historique le garde). Aucun utilisateur ne peut la modifier depuis
- *  l'application : c'est ici qu'elle se règle.
- *  0  ->  les repères ne disparaissent jamais.
+ *  After that, the marker disappears from every vehicle's map and from
+ *  the sightings list. Nobody can change it from the app: it is set here.
+ *  0  ->  markers never disappear.
  */
-window.LW_DUREE_H = 5;
+window.LW_DISPLAY_HOURS = 3;
 
-/*  Véhicules de la réserve.
+/*  The reserve's vehicles.
  *
- *  Chaque entrée correspond à un compte créé à la main dans Supabase
- *  (Authentication → Users → Add user, avec « Auto Confirm User » coché).
- *  Le guide ne voit que le nom : il choisit son véhicule dans la liste et
- *  tape son mot de passe. L'adresse ne sert qu'en interne et n'a pas besoin
- *  d'exister réellement — aucun courriel n'est jamais envoyé.
+ *  Each entry matches an account created by hand in Supabase
+ *  (Authentication -> Users -> Add user, with "Auto Confirm User" ticked).
+ *  The guide only sees the name: they pick their vehicle from the list
+ *  and type its password. The email is only used internally and does not
+ *  need to exist — no email is ever sent.
  *
- *  Le nom affiché sur les signalements vient de cette liste.
+ *  The name shown on sightings comes from this list.
  *
- *  Retirer un véhicule ici le fait disparaître de l'écran de connexion,
- *  mais NE désactive pas son compte : pour couper l'accès pour de bon,
- *  supprimez aussi le compte dans Supabase.
+ *  Removing a vehicle here removes it from the sign-in screen but does
+ *  NOT disable its account: to cut access for good, also delete the
+ *  account in Supabase.
  *
- *  admin: true  ->  ce compte voit les réglages d'administration :
- *  carte, calage GPS, exports, effacement, configuration du partage.
- *  Sans ce drapeau, le guide n'a que l'affichage et sa déconnexion.
- *  Réservez-le à un ou deux comptes.
+ *  admin: true  ->  this account sees the administration settings
+ *  (sharing setup, exports, delete). Keep it to one or two accounts.
  *
- *  Liste vide  ->  l'app redemande l'adresse e-mail et le mot de passe.
+ *  Empty list  ->  the app asks for email and password instead.
  */
-window.LW_VEHICULES = [
-  { nom: "Land Cruiser TDC", email: "tdecoster@tdecoster.eu" },
-  { nom: "Land Cruiser 2", email: "cruiser2@leadwood.local" },
-  { nom: "Land Cruiser 3", email: "cruiser3@leadwood.local" },
-  { nom: "Réserve — bureau", email: "leopoldlangen@gmail.com", admin: true }
+window.LW_VEHICLES = [
+  { name: "Land Cruiser 1", email: "cruiser1@leadwood.local" },
+  { name: "Land Cruiser 2", email: "cruiser2@leadwood.local" },
+  { name: "Land Cruiser 3", email: "cruiser3@leadwood.local" },
+  { name: "Reserve office", email: "leopoldlangen@gmail.com", admin: true }
 ];

@@ -1,8 +1,8 @@
 {
   "name": "Leadwood Tracker",
   "short_name": "Leadwood",
-  "description": "Signalez les animaux en temps réel sur la carte de la réserve.",
-  "lang": "fr",
+  "description": "Report animal sightings in real time on the reserve map.",
+  "lang": "en",
   "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",

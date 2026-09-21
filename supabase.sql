@@ -1,10 +1,10 @@
 -- ===================================================================
---  Leadwood Tracker — partage des signalements entre véhicules
---  À coller dans Supabase : SQL Editor → New query → Run
+--  Leadwood Tracker — step 1: shared sightings table
+--  Paste in Supabase: SQL Editor -> New query -> Run
 --
---  Ce script fonctionne quel que soit le réglage « Automatically
---  expose new tables » choisi à la création du projet : les
---  privilèges nécessaires sont accordés explicitement plus bas.
+--  Works whatever "Automatically expose new tables" setting was chosen
+--  when the project was created: the required privileges are granted
+--  explicitly below.
 -- ===================================================================
 
 create table if not exists sightings (
@@ -19,42 +19,40 @@ create table if not exists sightings (
   updated_at timestamptz not null default now()
 );
 
--- La relève ne demande que ce qui a changé depuis le dernier passage.
+-- Each pull only asks for what changed since the previous one.
 create index if not exists sightings_updated_at_idx on sightings (updated_at);
 
 -- ------------------------------------------------------------------
---  1. Privilèges : rendre la table visible par l'API REST
+--  1. Privileges: make the table visible to the REST API
 -- ------------------------------------------------------------------
 grant usage on schema public to anon;
 grant select, insert, update on table sightings to anon;
 
 -- ------------------------------------------------------------------
---  2. Sécurité au niveau des lignes
---     Sans RLS activé, la table serait ouverte à tout le monde.
---     Avec RLS et sans politique, elle serait fermée à tout le monde.
---     Les trois politiques ci-dessous ouvrent exactement ce qu'il faut.
+--  2. Row-level security
+--     Without RLS the table would be open to everyone; with RLS and
+--     no policy it would be closed to everyone. These policies open
+--     exactly what is needed. (Step 2 replaces them with per-account
+--     policies.)
 -- ------------------------------------------------------------------
 alter table sightings enable row level security;
 
 drop policy if exists "lecture"  on sightings;
 drop policy if exists "ecriture" on sightings;
 drop policy if exists "maj"      on sightings;
+drop policy if exists "read"     on sightings;
+drop policy if exists "insert"   on sightings;
+drop policy if exists "update"   on sightings;
 
-create policy "lecture"  on sightings for select to anon using (true);
-create policy "ecriture" on sightings for insert to anon with check (true);
-create policy "maj"      on sightings for update to anon using (true) with check (true);
+create policy "read"   on sightings for select to anon using (true);
+create policy "insert" on sightings for insert to anon with check (true);
+create policy "update" on sightings for update to anon using (true) with check (true);
 
--- Remarque : il n'y a volontairement pas de politique DELETE.
--- L'application marque les signalements comme supprimés (colonne
--- « deleted ») au lieu de les effacer, sinon ils réapparaîtraient
--- chez les autres véhicules à la relève suivante.
+-- Note: there is deliberately no DELETE policy. The app marks sightings
+-- as deleted (column "deleted") instead of erasing them, otherwise they
+-- would come back on the other vehicles at the next pull.
 
 -- ------------------------------------------------------------------
---  3. Forcer PostgREST à relire le schéma (évite un 404 transitoire)
+--  3. Make PostgREST reload the schema (avoids a transient 404)
 -- ------------------------------------------------------------------
 notify pgrst, 'reload schema';
-
--- ------------------------------------------------------------------
---  Ménage occasionnel — à lancer à la main de temps en temps.
--- ------------------------------------------------------------------
--- delete from sightings where ts < now() - interval '30 days';

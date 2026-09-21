@@ -1,301 +1,150 @@
 # Leadwood Tracker
 
-Application web (PWA) de signalement d'animaux en temps réel sur la carte de la réserve (fond satellite + routes tirées des KMZ de la réserve).
-Fonctionne hors réseau, s'installe sur l'écran d'accueil, et partage facultativement les
-signalements entre les véhicules de l'équipe.
-
----
-
-## Mise en ligne sur GitHub Pages
-
-### Le point qui bloquait
-
-Le fichier principal doit s'appeler **`index.html`**. Un fichier nommé `index`, sans extension,
-n'est pas reconnu par GitHub Pages : le site retombe alors sur le README rendu par Jekyll, et
-l'application ne s'affiche jamais.
-
-### Fichiers à avoir dans le dépôt
-
-```
-index.html                  l'application (HTML + CSS + JS)
-config.js                   mot de passe d'ouverture (empreinte)
-motdepasse.html             outil de calcul de cette empreinte
-manifest.json               métadonnées PWA
-sw.js                       service worker (cache hors ligne)
-supabase.sql                script de création de la table partagée
-supabase-comptes.sql        script d'activation des comptes individuels
-icon-192.png                icônes d'application
-icon-512.png
-icon-maskable-512.png       version « maskable » pour Android
-favicon.ico
-leaflet.js                  Leaflet 1.9.4 (moteur de carte)
-leaflet.css
-reserve.js                  limite + routes + noms, générés depuis les KMZ
-outils/kmz2js.py            (facultatif) le convertisseur KMZ → reserve.js
-```
-
-L'ancien fichier `index` (sans extension) doit être **supprimé**, sinon il reste dans le dépôt
-sans être utilisé.
-
-### Marche à suivre
-
-**En ligne de commande :**
-
-```bash
-git rm index                      # supprime l'ancien fichier sans extension
-# copier ici les fichiers du paquet
-git add .
-git commit -m "Application complète : signalements, calage GPS, hors ligne"
-git push
-```
-
-**Depuis l'interface GitHub :** *Add file → Upload files*, déposer les onze fichiers — tous à la
-racine, il n'y a aucun sous-dossier — puis supprimer l'ancien fichier `index` s'il subsiste.
-
-Vérifier ensuite dans *Settings → Pages* que la source est bien `Deploy from a branch → main → / (root)`.
-
-Le dépôt appartient à l'organisation **Leadwood-Big-Game-Estate** et porte le nom
-`leadwood-big-game-estate.github.io`, ce qui fait servir l'application à la racine du domaine :
+Web app (PWA) for the guides of Leadwood Big Game Estate to report animal sightings in real
+time on the reserve map, shared between vehicles. Installs on the home screen and keeps working
+without network.
 
     https://leadwood-big-game-estate.github.io
 
-`manifest.json` ne déclare volontairement pas de champ `id` : l'identité de l'application suit
-`start_url`, qui est relatif. Le fichier reste donc valable si le dépôt est renommé ou si un nom
-de domaine est ajouté plus tard.
+---
 
-### Pourquoi les chemins sont relatifs
+## Files
 
-Tous les chemins du projet commencent par `./`. C'est ce qui permet de déplacer l'application —
-sous-dossier, racine d'un domaine, autre hébergeur — sans rien réécrire. Un chemin absolu comme
-`"/index.html"` dans `sw.js` viserait la racine du domaine ; sur une page de projet servie depuis
-un sous-dossier, `cache.addAll()` échouerait sur cette seule URL et **annulerait l'installation
-complète du service worker**.
+### In the GitHub repository (public)
+
+```
+index.html              the app (HTML + CSS + JS)
+config.js               team settings: Supabase project, vehicles, display time, password hash
+password.html           tool that computes the opening-password hash
+manifest.json           PWA metadata
+sw.js                   service worker (offline cache)
+leaflet.js, leaflet.css Leaflet 1.9.4, the map engine
+icon-192.png, icon-512.png, icon-maskable-512.png, favicon.ico
+supabase.sql            step 1: sightings table
+supabase-accounts.sql   step 2: individual accounts + private map bucket
+tools/kmz2json.py       converter KMZ -> reserve.json (optional, for map updates)
+README.md
+```
+
+All files sit at the root (except `tools/`). All paths are relative, so the app also works from a
+sub-folder or another host.
+
+### In Supabase Storage (private)
+
+```
+bucket "cartes" / reserve.json    reserve boundary, roads and road names
+```
+
+**Never put `reserve.json` in the repository**: the repository is public, the bucket is not. The
+app only downloads it once a guide is signed in, then keeps a copy on the phone for offline use.
+Signing out deletes that copy.
 
 ---
 
-## Utilisation
+## How it works for a guide
 
-### La carte de la réserve
+1. Open the address in **Safari** (iPhone) or **Chrome** (Android) and add it to the home screen
+   (iPhone: Share → *Add to Home Screen*; Android: ⋮ → *Install app*).
+2. Pick the vehicle, type its password.
+3. The map opens on their position.
 
-Plus de PDF ni de calage. La carte est composée de :
+| Action | Result |
+|---|---|
+| Pick an animal, then the green button | Sighting at the current GPS position |
+| Long press on the map (animal selected) | Sighting at the chosen spot, without GPS |
+| Tap a marker | Details: age, distance and direction from you, share, delete (own sightings only) |
+| Tap a road | Its name (handy for the radio) |
+| Layers button | Satellite ⇄ Road map |
+| Target button | Follow my position; stops as soon as the map is moved by hand |
 
-- un **fond satellite** (imagerie mondiale Esri, sans clé ni compte) ;
-- par-dessus, la **limite de Rietspruit** et les **routes de Leadwood, Bloubank et Khaya Ndlovu**,
-  lues dans `reserve.js`. Routes principales en trait plein, pistes (2-tracks) en tirets,
-  « No entry for Traverse » en pointillés rouges. Les noms des routes apparaissent en zoomant.
+A sighting **disappears after `LW_DISPLAY_HOURS` hours** (config.js) — from the map *and* from the
+sightings list. Markers fade as they age. Admins keep the full history in the exports.
 
-Le bouton « calques » bascule entre **Satellite** et **Plan des routes**. Le plan fonctionne
-partout sans réseau ; le satellite garde en mémoire les zones déjà affichées (jusqu'à ~4 000
-tuiles), il faut donc l'avoir parcouru une fois avec du réseau pour l'avoir en brousse.
+### The map
 
-**Mettre à jour les routes :** exporter les KMZ depuis Google Earth, puis
+- **Satellite background**: Esri World Imagery (no key). Tiles already viewed are kept on the
+  phone (up to ~4,000 tiles), so browse the reserve once on Wi-Fi before going out.
+- **Overlay** from `reserve.json`: Rietspruit boundary; roads (solid), two-tracks (dashed),
+  "No entry for Traverse" (red dotted); road names from zoom 15.
+- **Road map** mode: overlay only, works everywhere without network.
+
+No calibration is needed: the KMZ files hold real GPS coordinates.
+
+### Updating the roads
+
+Export the KMZ files from Google Earth, then:
 
 ```bash
-python3 outils/kmz2js.py "Rietspruit Game Reserve Boundary.kmz" "Leadwood Roads.kmz" \
-        "Bloubank Roads.kmz" "Khaya Ndlovu Roads.kmz" > reserve.js
+python3 tools/kmz2json.py "Rietspruit Game Reserve Boundary.kmz" "Leadwood Roads.kmz" \
+        "Bloubank Roads.kmz" "Khaya Ndlovu Roads.kmz" > reserve.json
 ```
 
-et publier le nouveau `reserve.js` (les téléphones le récupèrent au lancement suivant). Le classement
-route / piste / interdit suit le nom des dossiers Google Earth (« track », « No entry »…).
+Upload the new `reserve.json` to Supabase (Storage → `cartes` → replace the file). Phones pick it
+up the next time they open the app with network. Lines are classified from the Google Earth folder
+names ("track" → two-track, "No entry" → no entry, anything else → road).
 
-### Sur le terrain
+---
 
-| Geste | Effet |
+## config.js
+
+Edit it on GitHub (pencil icon → *Commit changes*); phones get the change the next time they open
+the app.
+
+| Setting | Meaning |
 |---|---|
-| Choisir un animal puis le bouton vert | Signalement à la position GPS actuelle |
-| Appui long sur la carte (animal sélectionné) | Signalement à l'endroit désigné, sans GPS |
-| Appui sur une route | Son nom (pratique pour la radio) |
-| Appui sur un repère | Détail : ancienneté, distance et direction depuis votre position, partage, suppression |
-| Pincer / double-tap / molette | Zoom |
-| Bouton cible | Suivi de la position ; le suivi se coupe dès qu'on déplace la carte à la main |
+| `LW_GATE_HASH` | Opening password hash (from `password.html`). Empty = no password screen. |
+| `LW_SUPABASE` | Project URL + **publishable** key. Never the secret / service_role key. |
+| `LW_DISPLAY_HOURS` | Hours a sighting stays visible, for the whole team. 0 = forever. |
+| `LW_VEHICLES` | `{ name, email, admin? }` per vehicle account. |
 
-Un signalement **disparaît de la carte après 5 heures** par défaut (`LW_DUREE_H` dans `config.js`,
-commun à toute l'équipe). Les repères pâlissent à mesure qu'ils vieillissent. L'historique, lui, conserve tout.
+The older French keys (`LW_DUREE_H`, `LW_VEHICULES`, `nom`) are still accepted.
 
-### Installation sur téléphone
+### Accounts
 
-- **Android / Chrome** : menu ⋮ → *Installer l'application*.
-- **iPhone / Safari** : Partager → *Sur l'écran d'accueil*. iOS n'installe une PWA que depuis
-  Safari, jamais depuis Chrome.
+**Add a vehicle:** Supabase → *Authentication → Users → Add user*, email + password, tick
+*Auto Confirm User*. Then add `{ name: "Land Cruiser 4", email: "cruiser4@leadwood.local" }` to
+`LW_VEHICLES`. The email never appears in the app and does not need to exist.
 
-Une fois installée, l'app démarre sans réseau : Leaflet et les tracés sont en cache.
+**Remove a vehicle / lost phone:** delete the account in Supabase (then recreate it with a new
+password if needed). Changing the password alone may not close a session already open.
 
----
-
-## Où sont les données
-
-Dans le navigateur de l'appareil, et nulle part ailleurs :
-
-- les **signalements** dans `localStorage` ;
-- les **tuiles satellite** déjà vues dans le cache du service worker.
-
-Sans partage activé, rien ne quitte l'appareil : deux véhicules ne voient pas les signalements
-l'un de l'autre, et le bouton *Partager* d'un repère sert à envoyer ses coordonnées par WhatsApp,
-SMS ou radio. Avec le partage activé (voir plus bas), les signalements sont en plus copiés dans
-une base Supabase .
-
-Vider les données du site efface le contenu local ; l'export JSON de l'écran Réglages sert de
-sauvegarde.
+**Admin:** `admin: true` in `LW_VEHICLES` shows sharing setup, exports and delete. It only hides
+buttons; what an account may read or change is enforced by the server.
 
 ---
 
-## Personnalisation
+## Security
 
-### Liste des animaux
-
-Dans `index.html`, tableau `ANIMALS` :
-
-```js
-const ANIMALS = [
-  { id:"lion", nom:"Lion", e:"🦁", c:"#C8842B" },
-  ...
-];
-```
-
-`id` sert de clé de stockage : ne pas le modifier après coup, sous peine de perdre le lien avec
-les signalements existants. `e` est l'emoji du repère, `c` sa couleur.
-
-### Durée de validité
-
-`window.LW_DUREE_H` dans `config.js` (0 = sans limite). Les guides ne peuvent pas la changer.
-
-### Après chaque modification
-
-Incrémenter `VERSION` dans `sw.js` (`"v19"` → `"v20"`), sinon les appareils qui ont déjà installé
-l'application continueront de servir l'ancienne version depuis leur cache.
+- **Real protection = Supabase accounts + row-level security.** Without an account the
+  publishable key gives access to nothing. Everyone signed in sees all sightings; each vehicle can
+  only post under its own identity and only change its own sightings.
+- **Turn off public sign-ups:** *Authentication → Sign In / Providers → Allow new users to sign
+  up* = off. Otherwise anyone could create an account with the public key and read the sightings.
+- **The opening password is a convenience only**: its hash is public; it keeps casual visitors out.
+- **Road data is private** (Supabase bucket), downloaded only after sign-in, wiped on sign-out.
+- **Git history** keeps every file ever committed (e.g. an old `carte.pdf` or `reserve.js`).
+  Deleting a file does not remove it from history.
+- **Retention:** sightings stay in the database. Run from time to time:
+  `delete from sightings where ts < now() - interval '30 days';`
+- The *Share* button sends coordinates by WhatsApp/SMS: from there they leave the app's control.
 
 ---
 
-## Partage entre véhicules
+## Setting up from scratch
 
-Par défaut l'application est locale. Une fois le partage activé, les signalements circulent entre
-tous les véhicules équipés : chacun voit les repères des autres, avec le nom de celui qui a vu
-l'animal, et les suppressions se propagent.
+1. Supabase: new project, run `supabase.sql`, then `supabase-accounts.sql` (SQL Editor).
+2. Turn off public sign-ups; create the vehicle accounts.
+3. Upload `reserve.json` to Storage → `cartes`.
+4. Fill in `config.js`; upload the repository files; *Settings → Pages → Deploy from a branch →
+   main → / (root)*.
 
-### Mettre en place la base (une seule fois, 5 minutes)
-
-1. Créer un compte sur [supabase.com](https://supabase.com) — l'offre gratuite suffit largement.
-2. *New project* : nom au choix, mot de passe de base de données au choix (il ne servira pas ici),
-   région **eu-central** ou **af-south** selon la localisation.
-   Dans la section *Security* : laisser **Enable Data API** coché (l'application passe par cette
-   API — décoché, rien ne fonctionne). Les deux autres cases sont indifférentes : le script
-   accorde les privilèges explicitement et active RLS lui-même.
-3. Une fois le projet prêt : menu **SQL Editor** → *New query* → coller le contenu de
-   `supabase.sql` → **Run**.
-4. Menu **Settings → API** : relever **Project URL** (`https://xxxx.supabase.co`) et la clé
-   **anon public** (une longue chaîne commençant par `eyJ`). Ne pas prendre la clé *service_role*.
-
-### Équiper les téléphones
-
-Sur le premier appareil : *Réglages → Configurer le partage*, saisir le nom du véhicule, l'URL du
-projet et la clé, puis *Activer le partage*. L'application vérifie la connexion et signale
-précisément ce qui cloche (clé refusée, table absente, serveur injoignable).
-
-Pour les autres : *Copier le lien de configuration*, envoyer ce lien au guide. Il l'ouvre, tout est
-réglé — il ne lui reste qu'à indiquer le nom de son véhicule.
-
-### Comment ça se comporte sur le terrain
-
-- **Hors ligne d'abord.** Un signalement est d'abord enregistré sur l'appareil, puis envoyé. Sans
-  réseau, il attend dans la file — le badge indique « 3 en attente » — et part dès le retour du
-  signal.
-- **Relève toutes les 12 secondes** quand l'application est à l'écran, plus une relève immédiate au
-  retour du réseau ou quand on rouvre l'app. Un sondage court résiste mieux qu'une connexion
-  permanente à un réseau cellulaire intermittent : une liaison WebSocket passe son temps à tomber
-  et à se reconnecter là où un appel HTTP de 2 ko réussit ou échoue proprement.
-- **Le badge de la barre du haut** donne l'état : *Local* (partage inactif), *Partagé*,
-  *n en attente*, *Partage en erreur*. Il est cliquable et mène droit aux réglages du partage.
-- **Suppression logique.** Supprimer un repère le marque comme supprimé au lieu de l'effacer :
-  sans cela il réapparaîtrait à la relève suivante sur tous les appareils. Ces marques sont
-  nettoyées au bout de 7 jours.
-
-### Ce que ça implique pour la sécurité
-
-La clé *anon* n'est pas dans le dépôt GitHub : elle ne vit que sur les appareils configurés et
-dans le lien de configuration. Toute personne qui obtient ce lien peut lire et écrire des
-signalements. En cas de fuite, régénérer la clé dans Supabase (*Settings → API → Reset*) et
-reconfigurer les téléphones — les anciens liens cessent aussitôt de fonctionner.
-
-Ne jamais publier ce lien ni committer la clé dans le dépôt.
-
-## Sécurité
-
-L'application traite des **positions d'animaux en temps réel, horodatées, avec la carte des
-pistes** — rhinocéros compris. C'est le jeu de données que recherchent les braconniers. Les
-protections ci-dessous ne sont pas décoratives.
-
-### Mot de passe d'ouverture — mesure d'appoint
-
-L'application demande un mot de passe à l'ouverture. **Ce contrôle s'exécute dans le navigateur** :
-la page est téléchargée par quiconque connaît l'URL, et la condition peut être contournée en
-lisant la source. Il écarte le passant, pas quelqu'un de motivé. Il ne remplace pas les comptes.
-
-Le mot de passe n'est pas stocké : seule son empreinte SHA-256 figure dans **`config.js`**, isolé
-du reste pour qu'on puisse le changer sans toucher à l'application.
-
-**Changer le mot de passe :** ouvrir `motdepasse.html` sur le site, taper le mot de passe voulu,
-recopier la ligne affichée dans `config.js`, valider le commit. Chaque appareil déjà déverrouillé
-le redemandera — c'est l'intérêt : un téléphone perdu perd l'accès dès ce changement.
-
-Une empreinte vide dans `config.js` désactive complètement cet écran.
-
-### Comptes individuels — la vraie protection
-
-Exécuter `supabase-comptes.sql` dans SQL Editor. Après ce script :
-
-- la clé « anon » seule ne donne plus **aucun** accès : il faut un compte ;
-- chaque guide a son identifiant, révocable individuellement sans toucher aux autres ;
-- l'auteur d'un signalement est **vérifié par le serveur** (`author_id = auth.uid()`) et ne peut
-  plus être usurpé ;
-- on ne modifie et ne supprime que ses propres signalements ;
-
-L'application détecte seule le passage en mode authentifié : le serveur répond 401 à la clé
-anonyme, et l'écran de connexion apparaît.
-
-**Créer un guide :** *Authentication → Users → Add user*, e-mail et mot de passe, en cochant
-*Auto Confirm User*. Puis ajouter le véhicule à la liste `LW_VEHICULES` de `config.js` :
-
-```js
-window.LW_VEHICULES = [
-  { nom: "Land Cruiser 2", email: "cruiser2@leadwood.local" }
-];
-```
-
-Le guide ne voit que le nom : il choisit son véhicule dans une liste déroulante et tape son mot
-de passe. L'adresse ne sert qu'en interne, n'a pas besoin d'exister réellement — aucun courriel
-n'est envoyé — et le nom affiché sur ses signalements vient de cette liste.
-
-Conséquence à connaître : puisque ces adresses sont fictives, la réinitialisation de mot de passe
-par courriel ne fonctionne pas. Un mot de passe oublié se change depuis le tableau de bord
-Supabase, ce qui correspond de toute façon au fonctionnement voulu — c'est vous qui les délivrez.
-
-Laisser `LW_VEHICULES` vide fait réapparaître la saisie classique e-mail + mot de passe.
-
-**Retirer un guide :** supprimer son compte dans la même page. Ses signalements passés restent
-en base, ses identifiants cessent de fonctionner immédiatement, et aucun autre appareil n'est à
-reconfigurer.
-
-Le bucket Storage `cartes` (ancienne carte PDF) ne sert plus ; il peut être vidé ou supprimé.
-
-### Ce qui reste ouvert
-
-- Tous les comptes voient tous les signalements. Si les positions de rhinocéros ne doivent être
-  visibles que de certains, il faut une colonne de sensibilité et une politique RLS par rôle.
-- Un compte compromis donne accès à tout jusqu'à sa suppression. Des mots de passe distincts et
-  solides par guide sont le minimum.
-- Rien n'est chiffré de bout en bout : l'administrateur du projet Supabase voit tout.
-- Les signalements restent en base indéfiniment. Une purge régulière (`delete from sightings
-  where ts < now() - interval '30 days'`) limite ce qui serait exposé en cas de fuite.
+After changing `index.html` or `sw.js`, bump `VERSION` in `sw.js` so installed phones refresh.
 
 ---
 
-## Dépendances
+## Dependencies
 
-- [Leaflet](https://leafletjs.com) 1.9.4 — licence BSD-2, déposé à la racine du dépôt.
-- Fond satellite *World Imagery* d'Esri (attribution affichée sur la carte). Son usage gratuit
-  est toléré pour un usage modéré ; pour un usage commercial intensif, Esri demande un compte
-  ArcGIS. Le plan des routes, lui, ne dépend de personne.
-- Polices *Zilla Slab* et *Public Sans* via Google Fonts (SIL Open Font License), avec repli
-  système si le réseau est absent.
-
-Aucun autre appel réseau : pas de traceur, pas de publicité.
+- [Leaflet](https://leafletjs.com) 1.9.4 — BSD-2 licence, in the repository.
+- Esri World Imagery — attribution shown on the map. Free for moderate use; heavy commercial use
+  officially requires an ArcGIS account. The road map mode does not depend on it.
+- Zilla Slab and Public Sans fonts via Google Fonts (SIL OFL), with system fallback offline.
