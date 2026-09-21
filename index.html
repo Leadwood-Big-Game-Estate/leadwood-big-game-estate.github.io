@@ -394,6 +394,7 @@ select.inp{
         <span class="t" id="dropText">Appuyez pour choisir le PDF de la réserve</span>
       </label>
       <p class="hint">La carte est conservée dans l'application : vous ne l'importerez qu'une seule fois, même hors réseau.</p>
+      <p class="check warn" id="mapStatus" hidden></p>
       <div class="check warn" id="bundleHint" hidden>
         <span>💡</span>
         <span>Pour que plus personne n'ait à importer quoi que ce soit : déposez la carte dans le dépôt sous le nom <strong>carte.pdf</strong>. Elle se chargera alors toute seule sur chaque appareil.</span>
@@ -662,20 +663,71 @@ async function idbDel(key) {
 /* Carte rangée dans Supabase Storage (bucket « cartes »), accessible aux
    seuls comptes connectés. Une copie est gardée sur l'appareil pour que
    la carte reste disponible hors réseau. */
+function mo(n) { return (n / 1048576).toFixed(1).replace(".", ",") + " Mo"; }
+function mapStatus(txt) {
+  const el = $("mapStatus");
+  if (!el) return;
+  el.hidden = !txt;
+  el.innerHTML = txt || "";
+}
+async function cachedRemote() {
+  try { return await idbGet("map-remote"); } catch (e) { return null; }
+}
+// La carte officielle de l'équipe, rangée dans Supabase. Elle peut peser
+// plusieurs dizaines de Mo : on affiche la progression, sinon le guide
+// croit que rien ne se passe. Copie gardée sur l'appareil pour le hors-ligne.
 async function fetchStorageMap() {
-  if (!syncOn() || !loggedIn()) return null;
+  S.mapErr = null;
+  if (!syncOn()) { S.mapErr = "nosync"; return cachedRemote(); }
+  if (!loggedIn()) { S.mapErr = "nologin"; return cachedRemote(); }
   try {
     const h = await heads();
     delete h["Content-Type"];
-    const r = await fetch(base() + "/storage/v1/object/cartes/carte.pdf", { headers:h });
-    if (!r.ok) throw new Error(r.status);
-    const buf = await r.arrayBuffer();
-    if (!isPdf(buf)) throw new Error("pas un pdf");
+    mapStatus("⏳ Téléchargement de la carte de la réserve…");
+    const r = await fetch(base() + "/storage/v1/object/cartes/carte.pdf", { headers:h, cache:"no-store" });
+    if (!r.ok) { S.mapErr = "http" + r.status; throw new Error(r.status); }
+    const total = +r.headers.get("Content-Length") || 0;
+    let buf;
+    if (r.body && r.body.getReader) {
+      const reader = r.body.getReader(), parts = [];
+      let got = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        parts.push(value); got += value.length;
+        mapStatus("⏳ Téléchargement de la carte… " + mo(got) + (total ? " / " + mo(total) : ""));
+      }
+      const all = new Uint8Array(got);
+      let off = 0;
+      parts.forEach(pt => { all.set(pt, off); off += pt.length; });
+      buf = all.buffer;
+    } else {
+      buf = await r.arrayBuffer();
+    }
+    if (!isPdf(buf)) { S.mapErr = "notpdf"; throw new Error("pas un pdf"); }
+    mapStatus("⏳ Préparation de la carte (" + mo(buf.byteLength) + ")…");
     idbPut("map-remote", buf).catch(() => {});
     return buf;
   } catch (e) {
-    try { return await idbGet("map-remote"); } catch (e2) { return null; }
+    if (!S.mapErr) S.mapErr = navigator.onLine ? "network" : "offline";
+    return cachedRemote();
   }
+}
+// Sans carte, on dit pourquoi au lieu de laisser l'écran d'import muet.
+function explainNoMap() {
+  const why = {
+    nosync:  "La carte de la réserve est dans Supabase : appuyez sur <strong>Partage entre véhicules</strong> et connectez-vous, elle se chargera toute seule.",
+    nologin: "Connectez-vous pour recevoir la carte de la réserve.",
+    http400: "Aucune carte dans Supabase : déposez-la dans Storage → <strong>cartes</strong>, sous le nom exact <strong>carte.pdf</strong>.",
+    http404: "Aucune carte dans Supabase : déposez-la dans Storage → <strong>cartes</strong>, sous le nom exact <strong>carte.pdf</strong>.",
+    http401: "Accès à la carte refusé : reconnectez-vous.",
+    http403: "Accès à la carte refusé : vérifiez la politique du bucket <strong>cartes</strong>.",
+    notpdf:  "Le fichier carte.pdf dans Supabase n'est pas un PDF valide.",
+    offline: "Pas de réseau, et la carte n'a encore jamais été téléchargée sur cet appareil.",
+    network: "La carte n'a pas pu être téléchargée : réseau instable. Rechargez la page pour réessayer."
+  };
+  mapStatus(S.mapErr && why[S.mapErr] ? "⚠ " + why[S.mapErr] : "");
+  if (S.mapErr) $("bundleHint").hidden = true;
 }
 function isPdf(buf) {
   const sig = String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 5)));
@@ -685,9 +737,14 @@ function isPdf(buf) {
 // Après une connexion faite depuis l'écran d'accueil, la carte rangée dans
 // Supabase devient accessible : on la charge sans attendre un rechargement.
 async function loadMapAfterLogin() {
-  if (S.rendered) return;
   const buf = await fetchStorageMap();
-  if (buf) { S.mapSource = "supabase"; await enterMap(buf); }
+  if (buf) {
+    S.mapSource = "supabase";
+    idbDel("map").catch(() => {});        // la carte officielle remplace l'import manuel
+    mapStatus("");
+    if (S.rendered) { $("loading").hidden = false; await renderPdf(buf); fit(); }
+    else await enterMap(buf);
+  } else if (!S.rendered) explainNoMap();
 }
 
 async function fetchBundledMap() {
@@ -836,7 +893,10 @@ async function enterMap(buf) {
     startGPS();
   } catch (e) {
     $("loading").hidden = true;
-    toast(typeof pdfjsLib === "undefined" ? PDF_ABSENT : "La carte n'a pas pu être affichée.");
+    toast(typeof pdfjsLib === "undefined" ? PDF_ABSENT
+      : (buf && buf.byteLength > 15 * 1048576
+          ? "Carte trop lourde pour ce téléphone (" + mo(buf.byteLength) + ") : il faut la compresser."
+          : "La carte n'a pas pu être affichée."));
   }
 }
 
@@ -1399,8 +1459,8 @@ function openSettings() {
     <div class="field">
       <span class="label">Carte et calage</span>
       <div class="menu">
-        <button id="swapMap"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13.5 12 18.5l9-5"/></svg>Changer le PDF de la réserve<span class="sub">${S.mapSource === "depot" ? "carte du dépôt" : "carte importée"}</span></button>
-        ${S.mapSource === "import" ? `<button id="useBundled"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.3-6.4M21 12a9 9 0 0 1-15.3 6.4"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>Revenir à la carte du dépôt</button>` : ""}
+        <button id="swapMap"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13.5 12 18.5l9-5"/></svg>Changer le PDF de la réserve<span class="sub">${{ supabase:"carte de l'équipe", depot:"carte du dépôt", import:"import manuel" }[S.mapSource] || ""}</span></button>
+        ${S.mapSource === "import" ? `<button id="useBundled"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.3-6.4M21 12a9 9 0 0 1-15.3 6.4"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>Revenir à la carte de l'équipe</button>` : ""}
         <button id="editB"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16l9-9 3 3-9 9H6v-3Z"/></svg>Modifier les coins GPS<span class="sub">${B.maxLat.toFixed(4)} / ${B.minLng.toFixed(4)}</span></button>
       </div>
     </div>
@@ -2150,19 +2210,30 @@ setInterval(() => { if (S.rendered) { drawOverlay(); updateCount(); } }, 60000);
   // carte, qui vit elle aussi derrière l'authentification.
   if (syncOn() && authRequired() && !loggedIn()) await waitLogin();
 
+  // Ordre de priorité : la carte officielle de l'équipe (Supabase) passe
+  // avant tout. Un import manuel ne sert qu'en l'absence de partage, et ne
+  // doit jamais masquer la carte que tout le monde utilise.
   let buf = null;
-  try { buf = await idbGet("map"); } catch (e) {}       // carte importée sur cet appareil
-  if (buf) { S.mapSource = "import"; }
-  if (!buf) {
-    buf = await fetchStorageMap();                       // carte rangée dans Supabase
-    if (buf) S.mapSource = "supabase";
+  if (syncOn()) {
+    buf = await fetchStorageMap();
+    if (buf) { S.mapSource = "supabase"; idbDel("map").catch(() => {}); }
   }
   if (!buf) {
-    buf = await fetchBundledMap();                       // carte livrée avec l'app
+    try { buf = await idbGet("map"); } catch (e) {}
+    if (buf) S.mapSource = "import";
+  }
+  if (!buf) {
+    buf = await fetchBundledMap();
     if (buf) S.mapSource = "depot";
   }
+  mapStatus("");
   if (buf) await enterMap(buf);
-  else $("bundleHint").hidden = false;
+  else {
+    // Pas de carte et pas encore de partage : c'est le cas du téléphone
+    // d'un guide qu'on vient d'équiper. On lui dit où aller.
+    if (!syncOn() && !S.mapErr) S.mapErr = "nosync";
+    explainNoMap();
+  }
 })();
 
 if ("serviceWorker" in navigator) {
