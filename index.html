@@ -185,7 +185,7 @@ select.inp{
   touch-action:none;cursor:grab;
 }
 #maparea.dragging{cursor:grabbing}
-#stage{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+#stage{position:absolute;top:0;left:0;transform-origin:0 0}
 #canvas{display:block;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
 #overlay{position:absolute;inset:0;pointer-events:none}
 #overlay .hit{pointer-events:auto;cursor:pointer}
@@ -760,7 +760,7 @@ const S = {
   k:1, tx:0, ty:0, fitK:1,
   pos:null, acc:null, gps:"searching",
   animal:null, follow:true,
-  placing:false, selected:null, pendingFile:null, mapSource:null
+  placing:false, selected:null, pendingFile:null, mapSource:null, B:1
 };
 let watchId = null;
 
@@ -912,7 +912,12 @@ async function renderPdf(buf) {
 
   const vp = page.getViewport({ scale:r });
   canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
-  canvas.style.width = S.pdfW + "px"; canvas.style.height = S.pdfH + "px";
+  // Le cadre CSS de la carte ne doit jamais être gigantesque. Un plan grand
+  // format mesure des milliers de points : Safari plafonne la taille des
+  // calques graphiques et dessine alors la carte réduite, dans un coin.
+  // On borne le cadre à 1 200 px et on compense dans le facteur de zoom.
+  S.B = Math.min(1, 1200 / Math.max(S.pdfW, S.pdfH));
+  canvas.style.width = (S.pdfW * S.B) + "px"; canvas.style.height = (S.pdfH * S.B) + "px";
   await page.render({ canvasContext:canvas.getContext("2d", { alpha:false }), viewport:vp }).promise;
   S.rendered = true;
   $("loading").hidden = true;
@@ -921,7 +926,7 @@ async function renderPdf(buf) {
 
 /* --------------------------- Zoom & déplacement --------------------- */
 function applyTransform() {
-  stage.style.transform = `translate(${S.tx}px,${S.ty}px) scale(${S.k})`;
+  stage.style.transform = `translate(${S.tx}px,${S.ty}px) scale(${S.k / (S.B || 1)})`;
   drawOverlay(); drawScale();
 }
 function fit() {
@@ -1626,7 +1631,17 @@ $("importInput").addEventListener("change", (e) => {
 
 $("btnHist").addEventListener("click", openHist);
 $("btnSet").addEventListener("click", openSettings);
-$("sync").addEventListener("click", openSync);
+$("sync").addEventListener("click", () => {
+  if (isAdmin()) { openSync(); return; }
+  toast(etatPartage());
+});
+function etatPartage() {
+  if (!syncOn()) return "Partage inactif sur ce téléphone.";
+  if (authRequired() && !loggedIn()) return "Connexion requise pour partager.";
+  if (!navigator.onLine) return "Hors ligne : les signalements partiront au retour du réseau.";
+  if (lastErr) return "Partage en erreur — " + lastErr;
+  return "Partage actif : vos signalements parviennent aux autres véhicules.";
+}
 
 /* =================================================================== *
  *  Partage entre véhicules
@@ -1822,7 +1837,7 @@ async function syncCycle(force) {
     if (out.length) {
       const res = await fetch(api("sightings"), {
         method:"POST",
-        headers:await heads({ "Prefer":"resolution=merge-duplicates,return=minimal" }),
+        headers:await heads({ "Prefer":"resolution=merge-duplicates,missing=default,return=minimal" }),
         body:JSON.stringify(out)
       });
       if (res.status === 401) return needLogin();
@@ -2035,6 +2050,7 @@ function openSync() {
   openSheet("Partage entre véhicules", syncOn() ? "actif" : "inactif");
   const s = sync || { url:"", key:"", author:"" };
   $("sheetBody").innerHTML = `
+    ${lastErr ? `<p class="check warn"><span>⚠</span><span>Dernière erreur de partage : ${esc(lastErr)}</span></p>` : ""}
     ${authRequired() ? `
     <div class="field">
       <span class="label">Compte</span>
@@ -2171,8 +2187,15 @@ function applyConfigLink() {
 
 /* ------------------------------ Utilitaires ------------------------- */
 function uid() {
-  return crypto.randomUUID ? crypto.randomUUID()
-    : Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  // Repli pour les anciens iPhone : un UUID v4 valide, sinon la base le refuse
+  // et bloque toute la file d'envoi.
+  const b = new Uint8Array(16);
+  (window.crypto || {}).getRandomValues ? crypto.getRandomValues(b)
+    : b.forEach((_, i) => { b[i] = Math.floor(Math.random() * 256); });
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, x => x.toString(16).padStart(2, "0")).join("");
+  return h.slice(0,8)+"-"+h.slice(8,12)+"-"+h.slice(12,16)+"-"+h.slice(16,20)+"-"+h.slice(20);
 }
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
