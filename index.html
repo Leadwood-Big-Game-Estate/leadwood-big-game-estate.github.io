@@ -600,9 +600,6 @@ const ANIMALS = [
 const A = Object.fromEntries(ANIMALS.map(a => [a.id, a]));
 
 const DEFAULT_BOUNDS = { maxLat:-24.371180, minLng:30.900230, minLat:-24.470152, maxLng:30.995868 };
-const EXPIRY_CHOICES = [
-  { h:2,  nom:"2 h" }, { h:5, nom:"5 h" }, { h:12, nom:"12 h" }, { h:0, nom:"Sans" }
-];
 
 /* ------------------------------ Stockage ---------------------------- */
 const K_SIGHT = "lw.sightings.v1";
@@ -615,9 +612,8 @@ function lsSet(k, v) {
 }
 
 let sightings = lsGet(K_SIGHT, []);
-let prefs = lsGet(K_PREFS, { bounds:DEFAULT_BOUNDS, expiryH:5, theme:"auto" });
+let prefs = lsGet(K_PREFS, { bounds:DEFAULT_BOUNDS, theme:"auto" });
 if (!prefs.bounds) prefs.bounds = DEFAULT_BOUNDS;
-if (prefs.expiryH === undefined) prefs.expiryH = 5;
 
 // La carte PDF vit dans IndexedDB : trop volumineuse pour localStorage.
 const DB = "leadwood", STORE = "files";
@@ -1117,7 +1113,14 @@ function setGps(s) {
 }
 
 /* ------------------------------ Signalements ------------------------ */
-function expiryMs() { return prefs.expiryH ? prefs.expiryH * 3600e3 : Infinity; }
+/* Durée d'affichage d'un repère : réglée une fois pour toute l'équipe dans
+   config.js (LW_DUREE_H). Si chaque téléphone avait la sienne, deux
+   véhicules ne verraient pas la même carte au même moment. */
+function dureeH() {
+  const d = window.LW_DUREE_H;
+  return (typeof d === "number" && d >= 0) ? d : 5;
+}
+function expiryMs() { const h = dureeH(); return h ? h * 3600e3 : Infinity; }
 function isLive(s) { return !s.deleted && (Date.now() - new Date(s.ts).getTime()) < expiryMs(); }
 function live() { return sightings.filter(isLive); }
 function known() { return sightings.filter(s => !s.deleted); }
@@ -1171,7 +1174,7 @@ function addSighting(lat, lng, acc) {
   sightings.unshift(rec);
   lsSet(K_SIGHT, sightings);
   const a = A[rec.animal];
-  toast(`${a.e} ${a.nom} signalé${syncOn() ? " · envoyé aux autres véhicules" : (prefs.expiryH ? " · visible " + prefs.expiryH + " h" : "")}`);
+  toast(`${a.e} ${a.nom} signalé${syncOn() ? " · envoyé aux autres véhicules" : (dureeH() ? " · visible " + dureeH() + " h" : "")}`);
   drawOverlay(); updateCount(); setSync();
   if (syncOn()) syncCycle(true);
 }
@@ -1430,9 +1433,11 @@ function openSettings() {
   const adm = isAdmin();
   $("sheetBody").innerHTML = `
     <div class="field">
-      <span class="label">Durée de validité d'un signalement</span>
-      <div class="seg" id="segExp"></div>
-      <p class="about">Passé ce délai, le repère disparaît de la carte : un animal vu il y a huit heures n'y est plus. L'historique, lui, garde tout.</p>
+      <span class="label">Durée d'affichage des signalements</span>
+      <p class="about" id="dureeInfo">${dureeH()
+        ? "Un repère reste sur la carte <strong>" + dureeH() + " h</strong>, puis disparaît : un animal vu il y a plus longtemps n'y est probablement plus. L'historique, lui, garde tout."
+        : "Les repères restent sur la carte sans limite de durée."}
+        Réglage commun à toute l'équipe.</p>
     </div>
     <div class="field">
       <span class="label">Thème</span>
@@ -1480,17 +1485,6 @@ function openSettings() {
         : "Pour changer la carte, le calage ou exporter les relevés, passez par un compte administrateur de la réserve."}
     </p>`;
 
-  const se = $("segExp");
-  EXPIRY_CHOICES.forEach(c => {
-    const btn = document.createElement("button");
-    btn.type = "button"; btn.textContent = c.nom;
-    btn.setAttribute("aria-pressed", String(prefs.expiryH === c.h));
-    btn.addEventListener("click", () => {
-      prefs.expiryH = c.h; lsSet(K_PREFS, prefs);
-      drawOverlay(); updateCount(); openSettings();
-    });
-    se.appendChild(btn);
-  });
   const st = $("segTheme");
   [["auto","Automatique"],["light","Clair"],["dark","Sombre"]].forEach(([id, nom]) => {
     const btn = document.createElement("button");

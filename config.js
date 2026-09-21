@@ -32,6 +32,15 @@ window.LW_SUPABASE = {
   key: "sb_publishable_Nd-B8xHPCT29JRP2oNMeVw_915DI8PP"
 };
 
+/*  Durée d'affichage d'un signalement, en heures, pour toute l'équipe.
+ *
+ *  Passé ce délai, le repère disparaît de la carte de tous les véhicules
+ *  (l'historique le garde). Aucun utilisateur ne peut la modifier depuis
+ *  l'application : c'est ici qu'elle se règle.
+ *  0  ->  les repères ne disparaissent jamais.
+ */
+window.LW_DUREE_H = 5;
+
 /*  Véhicules de la réserve.
  *
  *  Chaque entrée correspond à un compte créé à la main dans Supabase
@@ -54,6 +63,8 @@ window.LW_SUPABASE = {
  *  Liste vide  ->  l'app redemande l'adresse e-mail et le mot de passe.
  */
 window.LW_VEHICULES = [
-  { nom: "Land Cruiser TDC", email: "tdecoster@tdecoster.eu" },
-  { nom: "Land Cruiser LEOPOLD", email: "leopoldlangen@gmail.com", admin: true }
+  { nom: "Land Cruiser 1", email: "cruiser1@leadwood.local" },
+  { nom: "Land Cruiser 2", email: "cruiser2@leadwood.local" },
+  { nom: "Land Cruiser 3", email: "cruiser3@leadwood.local" },
+  { nom: "Réserve — bureau", email: "bureau@leadwood.local", admin: true }
 ];
