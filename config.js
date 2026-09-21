@@ -15,7 +15,7 @@
  *  reading the page's code. It keeps casual visitors out; the real
  *  protection is the Supabase accounts, which the server checks.
  */
-window.LW_GATE_HASH = "window.LW_GATE_HASH = "9cf6072ede59e1d70d3e6bce6c3b7f229d51d74cf29237b6f79c5e0ff2a417f2";
+window.LW_GATE_HASH = "9cf6072ede59e1d70d3e6bce6c3b7f229d51d74cf29237b6f79c5e0ff2a417f2";
 
 /*  The reserve's Supabase project.
  *
