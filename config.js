@@ -58,7 +58,7 @@ window.LW_DISPLAY_HOURS = 3;
  *  Empty list  ->  the app asks for email and password instead.
  */
 window.LW_VEHICLES = [
-  { name: "Land Cruiser 1", email: "cruiser1@leadwood.local" },
+  { name: "Land Cruiser TDC", email: "tdecoster@tdecoster.eu" },
   { name: "Land Cruiser 2", email: "cruiser2@leadwood.local" },
   { name: "Land Cruiser 3", email: "cruiser3@leadwood.local" },
   { name: "Reserve office", email: "leopoldlangen@gmail.com", admin: true }
