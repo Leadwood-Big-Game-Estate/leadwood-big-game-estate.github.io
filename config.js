@@ -54,8 +54,8 @@ window.LW_SUPABASE = {
  *  Liste vide  ->  l'app redemande l'adresse e-mail et le mot de passe.
  */
 window.LW_VEHICULES = [
-  { nom: "Land Cruiser 1", email: "cruiser1@leadwood.local" },
-  { nom: "Land Cruiser 2", email: "cruiser2@leadwood.local" },
+  { nom: "Land Cruiser TDC", email: "tdecoster@tdecoster.eu" },
+  { nom: "Land Cruiser LEOPOLD", email: "leopoldlangen@gmail.com" },
   { nom: "Land Cruiser 3", email: "cruiser3@leadwood.local" },
   { nom: "Réserve — bureau", email: "bureau@leadwood.local", admin: true }
 ];
