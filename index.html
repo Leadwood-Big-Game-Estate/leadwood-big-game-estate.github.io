@@ -1935,6 +1935,7 @@ function showLogin() {
   if (!box.hidden) return;
   box.hidden = false;
   $("loginErr").hidden = true;
+  $("loginSkip").hidden = !!preset();
 
   const vs = vehicules();
   const sel = $("loginVeh"), mail = $("loginEmail");
@@ -2143,6 +2144,23 @@ function openSync() {
   });
 }
 
+/* Le projet déclaré dans config.js fait foi : chaque téléphone est
+   configuré d'office, sans lien à envoyer ni réglage à saisir. */
+function preset() {
+  const c = window.LW_SUPABASE;
+  return (c && c.url && c.key) ? c : null;
+}
+function applyPreset() {
+  const c = preset();
+  if (!c) return;
+  if (!sync || sync.url !== c.url || sync.key !== c.key) {
+    sync = { url:c.url, key:c.key, author:"", auth:true };
+    lsSet(K_SYNC, sync);
+  } else if (!sync.auth) {
+    sync.auth = true; lsSet(K_SYNC, sync);
+  }
+}
+
 function applyConfigLink() {
   const m = location.hash.match(/^#c=(.+)$/);
   if (!m) return false;
@@ -2197,6 +2215,7 @@ function applyTheme() {
 applyTheme();
 fillBounds();
 applyConfigLink();      // lien « #c=… » envoyé par un autre véhicule
+applyPreset();          // projet Supabase déclaré dans config.js
 updateCount();
 setSync();
 startSync();

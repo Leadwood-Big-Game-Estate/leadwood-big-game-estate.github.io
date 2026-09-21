@@ -16,7 +16,21 @@
  *  tombe sur l'adresse ; la vraie protection, ce sont les comptes
  *  Supabase, qui eux sont vérifiés par le serveur.
  */
-window.LW_GATE_HASH = "839d66354adb5398982369c77725b29c0eef948308953aec3c73186f712fcb79";
+window.LW_GATE_HASH = "";
+
+/*  Projet Supabase de la réserve.
+ *
+ *  Renseigné ici, chaque téléphone le connaît d'office : le guide n'a rien
+ *  à configurer, il choisit son véhicule et tape son mot de passe.
+ *  La clé « publishable » est faite pour être publique : elle ne donne
+ *  accès à rien sans compte, les données étant protégées par les
+ *  politiques de sécurité (script supabase-comptes.sql).
+ *  Ne JAMAIS mettre ici la clé « secret » / « service_role ».
+ */
+window.LW_SUPABASE = {
+  url: "https://jxijcxlaadtdlefussob.supabase.co",
+  key: "sb_publishable_Nd-B8xHPCT29JRP2oNMeVw_915DI8PP"
+};
 
 /*  Véhicules de la réserve.
  *
@@ -32,11 +46,16 @@ window.LW_GATE_HASH = "839d66354adb5398982369c77725b29c0eef948308953aec3c73186f7
  *  mais NE désactive pas son compte : pour couper l'accès pour de bon,
  *  supprimez aussi le compte dans Supabase.
  *
+ *  admin: true  ->  ce compte voit les réglages d'administration :
+ *  carte, calage GPS, exports, effacement, configuration du partage.
+ *  Sans ce drapeau, le guide n'a que l'affichage et sa déconnexion.
+ *  Réservez-le à un ou deux comptes.
+ *
  *  Liste vide  ->  l'app redemande l'adresse e-mail et le mot de passe.
  */
 window.LW_VEHICULES = [
   { nom: "Land Cruiser 1", email: "cruiser1@leadwood.local" },
   { nom: "Land Cruiser 2", email: "cruiser2@leadwood.local" },
   { nom: "Land Cruiser 3", email: "cruiser3@leadwood.local" },
-  { nom: "Réserve — bureau", email: "bureau@leadwood.local" }
+  { nom: "Réserve — bureau", email: "bureau@leadwood.local", admin: true }
 ];

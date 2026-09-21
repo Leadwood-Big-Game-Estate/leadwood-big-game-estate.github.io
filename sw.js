@@ -6,7 +6,7 @@
  *  Un chemin absolu ("/index.html") pointerait vers la racine du domaine,
  *  addAll() échouerait et l'installation entière serait annulée.
  * ------------------------------------------------------------------ */
-const VERSION = "v15";
+const VERSION = "v16";
 const CACHE   = "leadwood-" + VERSION;
 
 const PRECACHE = [
@@ -62,6 +62,22 @@ self.addEventListener("fetch", (event) => {
         return fresh;
       } catch (e) {
         return (await caches.match("./index.html")) || Response.error();
+      }
+    })());
+    return;
+  }
+
+  // config.js : réseau d'abord. C'est là que vivent la liste des véhicules
+  // et le mot de passe d'ouverture ; servi depuis le cache, un véhicule
+  // ajouté ou un mot de passe changé n'atteindrait jamais les téléphones.
+  if (url.origin === self.location.origin && url.pathname.endsWith("/config.js")) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req, { cache: "no-store" });
+        if (fresh.ok) (await caches.open(CACHE)).put(req, fresh.clone());
+        return fresh;
+      } catch (e) {
+        return (await caches.match(req)) || new Response("", { status: 504 });
       }
     })());
     return;
