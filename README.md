@@ -1,6 +1,6 @@
 # Leadwood Tracker
 
-Application web (PWA) de signalement d'animaux en temps réel sur la carte PDF de la réserve.
+Application web (PWA) de signalement d'animaux en temps réel sur la carte de la réserve (fond satellite + routes tirées des KMZ de la réserve).
 Fonctionne hors réseau, s'installe sur l'écran d'accueil, et partage facultativement les
 signalements entre les véhicules de l'équipe.
 
@@ -28,9 +28,10 @@ icon-192.png                icônes d'application
 icon-512.png
 icon-maskable-512.png       version « maskable » pour Android
 favicon.ico
-pdf.min.js                  pdf.js 3.11.174 embarqué
-pdf.worker.min.js
-carte.pdf                   (facultatif) carte de la réserve livrée avec l'app
+leaflet.js                  Leaflet 1.9.4 (moteur de carte)
+leaflet.css
+reserve.js                  limite + routes + noms, générés depuis les KMZ
+outils/kmz2js.py            (facultatif) le convertisseur KMZ → reserve.js
 ```
 
 L'ancien fichier `index` (sans extension) doit être **supprimé**, sinon il reste dans le dépôt
@@ -76,24 +77,26 @@ complète du service worker**.
 
 ### La carte de la réserve
 
-Deux façons de la fournir.
+Plus de PDF ni de calage. La carte est composée de :
 
-**Recommandé — livrer la carte avec l'application.** Déposer le PDF dans le dépôt sous le nom
-exact **`carte.pdf`**, à la racine. L'application la charge alors toute seule : plus aucun écran
-d'import, plus rien à expliquer aux guides. Ils ouvrent le lien et la carte est là. Le service
-worker la met en cache, donc elle reste disponible hors réseau.
+- un **fond satellite** (imagerie mondiale Esri, sans clé ni compte) ;
+- par-dessus, la **limite de Rietspruit** et les **routes de Leadwood, Bloubank et Khaya Ndlovu**,
+  lues dans `reserve.js`. Routes principales en trait plein, pistes (2-tracks) en tirets,
+  « No entry for Traverse » en pointillés rouges. Les noms des routes apparaissent en zoomant.
 
-Après avoir publié une **nouvelle version de la carte**, incrémenter `VERSION` dans `sw.js` :
-sans ça, les appareils déjà installés continueront d'afficher l'ancienne depuis leur cache.
+Le bouton « calques » bascule entre **Satellite** et **Plan des routes**. Le plan fonctionne
+partout sans réseau ; le satellite garde en mémoire les zones déjà affichées (jusqu'à ~4 000
+tuiles), il faut donc l'avoir parcouru une fois avec du réseau pour l'avoir en brousse.
 
-**Sinon — import manuel.** Sans `carte.pdf` dans le dépôt, chaque appareil importe le PDF une
-fois ; il est conservé dans IndexedDB et ne sera plus redemandé. Un appareil qui a importé sa
-propre carte garde la priorité sur celle du dépôt ; *Réglages → Revenir à la carte du dépôt*
-annule cette préférence.
+**Mettre à jour les routes :** exporter les KMZ depuis Google Earth, puis
 
-Dans les deux cas, vérifier les quatre coins GPS au premier lancement. Un contrôle automatique
-compare les proportions de la page PDF à celles de la zone décrite et prévient en cas d'écart
-supérieur à 8 %.
+```bash
+python3 outils/kmz2js.py "Rietspruit Game Reserve Boundary.kmz" "Leadwood Roads.kmz" \
+        "Bloubank Roads.kmz" "Khaya Ndlovu Roads.kmz" > reserve.js
+```
+
+et publier le nouveau `reserve.js` (les téléphones le récupèrent au lancement suivant). Le classement
+route / piste / interdit suit le nom des dossiers Google Earth (« track », « No entry »…).
 
 ### Sur le terrain
 
@@ -101,12 +104,13 @@ supérieur à 8 %.
 |---|---|
 | Choisir un animal puis le bouton vert | Signalement à la position GPS actuelle |
 | Appui long sur la carte (animal sélectionné) | Signalement à l'endroit désigné, sans GPS |
+| Appui sur une route | Son nom (pratique pour la radio) |
 | Appui sur un repère | Détail : ancienneté, distance et direction depuis votre position, partage, suppression |
 | Pincer / double-tap / molette | Zoom |
 | Bouton cible | Suivi de la position ; le suivi se coupe dès qu'on déplace la carte à la main |
 
-Un signalement **disparaît de la carte après 5 heures** par défaut (réglable : 2 h, 5 h, 12 h, sans
-expiration). Les repères pâlissent à mesure qu'ils vieillissent. L'historique, lui, conserve tout.
+Un signalement **disparaît de la carte après 5 heures** par défaut (`LW_DUREE_H` dans `config.js`,
+commun à toute l'équipe). Les repères pâlissent à mesure qu'ils vieillissent. L'historique, lui, conserve tout.
 
 ### Installation sur téléphone
 
@@ -114,9 +118,7 @@ expiration). Les repères pâlissent à mesure qu'ils vieillissent. L'historique
 - **iPhone / Safari** : Partager → *Sur l'écran d'accueil*. iOS n'installe une PWA que depuis
   Safari, jamais depuis Chrome.
 
-Une fois installée, l'app démarre sans réseau : la carte PDF est stockée localement et pdf.js est
-déposé dans le dépôt. Si `pdf.min.js` manque, l'app le récupère sur un CDN au premier lancement
-puis le met en cache — seul ce premier démarrage demande alors une connexion.
+Une fois installée, l'app démarre sans réseau : Leaflet et les tracés sont en cache.
 
 ---
 
@@ -125,12 +127,12 @@ puis le met en cache — seul ce premier démarrage demande alors une connexion.
 Dans le navigateur de l'appareil, et nulle part ailleurs :
 
 - les **signalements** dans `localStorage` ;
-- la **carte PDF** dans IndexedDB (trop volumineuse pour `localStorage`).
+- les **tuiles satellite** déjà vues dans le cache du service worker.
 
 Sans partage activé, rien ne quitte l'appareil : deux véhicules ne voient pas les signalements
 l'un de l'autre, et le bouton *Partager* d'un repère sert à envoyer ses coordonnées par WhatsApp,
 SMS ou radio. Avec le partage activé (voir plus bas), les signalements sont en plus copiés dans
-une base Supabase — la carte PDF, elle, ne quitte jamais l'appareil.
+une base Supabase .
 
 Vider les données du site efface le contenu local ; l'export JSON de l'écran Réglages sert de
 sauvegarde.
@@ -153,22 +155,13 @@ const ANIMALS = [
 `id` sert de clé de stockage : ne pas le modifier après coup, sous peine de perdre le lien avec
 les signalements existants. `e` est l'emoji du repère, `c` sa couleur.
 
-### Coins GPS par défaut
-
-```js
-const DEFAULT_BOUNDS = { maxLat:-24.371180, minLng:30.900230, minLat:-24.470152, maxLng:30.995868 };
-```
-
-Ils restent modifiables à tout moment depuis *Réglages → Modifier les coins GPS*, sans réimporter
-la carte : les signalements gardent leurs coordonnées GPS, seule leur position sur l'image change.
-
 ### Durée de validité
 
-`EXPIRY_CHOICES` définit les options proposées ; la valeur active est dans les réglages.
+`window.LW_DUREE_H` dans `config.js` (0 = sans limite). Les guides ne peuvent pas la changer.
 
 ### Après chaque modification
 
-Incrémenter `VERSION` dans `sw.js` (`"v3"` → `"v4"`), sinon les appareils qui ont déjà installé
+Incrémenter `VERSION` dans `sw.js` (`"v19"` → `"v20"`), sinon les appareils qui ont déjà installé
 l'application continueront de servir l'ancienne version depuis leur cache.
 
 ---
@@ -255,8 +248,6 @@ Exécuter `supabase-comptes.sql` dans SQL Editor. Après ce script :
 - l'auteur d'un signalement est **vérifié par le serveur** (`author_id = auth.uid()`) et ne peut
   plus être usurpé ;
 - on ne modifie et ne supprime que ses propres signalements ;
-- la carte vit dans Supabase Storage, bucket privé `cartes`, accessible aux seuls comptes
-  connectés — elle ne traîne plus dans un dépôt GitHub public.
 
 L'application détecte seule le passage en mode authentifié : le serveur répond 401 à la clé
 anonyme, et l'écran de connexion apparaît.
@@ -284,8 +275,7 @@ Laisser `LW_VEHICULES` vide fait réapparaître la saisie classique e-mail + mot
 en base, ses identifiants cessent de fonctionner immédiatement, et aucun autre appareil n'est à
 reconfigurer.
 
-**Téléverser la carte :** *Storage → bucket `cartes` → Upload file*, sous le nom exact
-`carte.pdf`. Le bucket doit rester privé.
+Le bucket Storage `cartes` (ancienne carte PDF) ne sert plus ; il peut être vidé ou supprimé.
 
 ### Ce qui reste ouvert
 
@@ -301,8 +291,11 @@ reconfigurer.
 
 ## Dépendances
 
-- [pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174, Mozilla — licence Apache 2.0, déposé à la racine du dépôt.
+- [Leaflet](https://leafletjs.com) 1.9.4 — licence BSD-2, déposé à la racine du dépôt.
+- Fond satellite *World Imagery* d'Esri (attribution affichée sur la carte). Son usage gratuit
+  est toléré pour un usage modéré ; pour un usage commercial intensif, Esri demande un compte
+  ArcGIS. Le plan des routes, lui, ne dépend de personne.
 - Polices *Zilla Slab* et *Public Sans* via Google Fonts (SIL Open Font License), avec repli
   système si le réseau est absent.
 
-Aucun autre appel réseau : pas de fond de carte en ligne, pas de traceur, pas de compte.
+Aucun autre appel réseau : pas de traceur, pas de publicité.

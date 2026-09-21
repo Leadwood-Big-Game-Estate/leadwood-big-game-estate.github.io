@@ -12,6 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="leaflet.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Public+Sans:wght@400;500;600;700&display=swap">
@@ -95,34 +96,6 @@ select.inp{
 }
 #login{z-index:1900}
 
-/* ----------------------------- Accueil ----------------------------- */
-#setup{flex:1;overflow-y:auto;padding:calc(var(--safe-t) + 22px) 20px calc(var(--safe-b) + 24px);display:flex;flex-direction:column;gap:16px}
-.hero{text-align:center;padding:10px 0 4px}
-.hero .mark{width:58px;height:58px;border-radius:17px;background:var(--green);display:grid;place-items:center;margin:0 auto 12px;box-shadow:var(--shadow-sm)}
-.hero .mark svg{width:33px;height:33px;fill:#fff}
-.hero h1{font-family:var(--f-dis);font-size:27px;font-weight:700;letter-spacing:-.015em;line-height:1.1}
-.hero p{font-size:13.5px;color:var(--ink-mute);margin-top:5px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:16px}
-.card h3{
-  font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--ink-mute);margin-bottom:11px;
-}
-.drop{
-  border:2px dashed var(--line);border-radius:11px;padding:24px 16px;text-align:center;
-  cursor:pointer;display:block;transition:border-color .15s,background .15s;
-}
-.drop:hover{background:var(--surface-2)}
-.drop.ok{border-color:var(--green);background:color-mix(in srgb,var(--green) 10%,transparent);border-style:solid}
-.drop .big{font-size:26px;display:block;margin-bottom:8px}
-.drop .t{font-size:13px;color:var(--ink-mute)}
-.drop.ok .t{color:var(--green-deep);font-weight:600}
-.bounds{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.bounds label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:4px}
-.bounds input{
-  width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;
-  background:var(--surface-2);font-size:13px;font-variant-numeric:tabular-nums;
-}
-.bounds input:focus{outline:none;border-color:var(--green)}
 .hint{font-size:12.5px;color:var(--ink-mute);line-height:1.5;margin-top:10px}
 .inp{
   width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
@@ -180,20 +153,39 @@ select.inp{
   font-variant-numeric:tabular-nums;
 }
 
-#maparea{
-  flex:1;position:relative;overflow:hidden;background:var(--surface-2);
-  touch-action:none;cursor:grab;
+#maparea{flex:1;position:relative;overflow:hidden;background:var(--surface-2)}
+#map{position:absolute;inset:0;z-index:0;background:#CFC8B2}
+#map.plan{background:#EEE8D6}
+:root[data-theme="dark"] #map.plan{background:#22251C}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #map.plan{background:#22251C}}
+#map.leaflet-container{font-family:var(--f-ui);outline:0}
+#map .leaflet-control-attribution{font-size:9px;line-height:1.3;background:rgba(255,255,255,.72);color:#333;padding:1px 5px;border-radius:5px 0 0 0}
+#map .leaflet-control-attribution a{color:#333}
+#map .leaflet-control-scale-line{
+  font-size:10.5px;font-weight:700;border-color:var(--ink-soft);color:var(--ink-soft);
+  background:color-mix(in srgb,var(--surface) 82%,transparent);
 }
-#maparea.dragging{cursor:grabbing}
-#stage{position:absolute;top:0;left:0;transform-origin:0 0}
-#canvas{display:block;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
-#overlay{position:absolute;inset:0;pointer-events:none}
-#overlay .hit{pointer-events:auto;cursor:pointer}
-#overlay .hit *{pointer-events:none}
-#overlay .hit .grab{pointer-events:auto}
-.gps-pulse{animation:pulse 2.6s ease-in-out infinite}
+#map .leaflet-bottom.leaflet-left{margin-bottom:4px}
+.pin{background:none;border:0}
+.pin svg{display:block;overflow:visible;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.me{background:none;border:0;pointer-events:none}
+.me i{position:absolute;border-radius:50%;display:block}
+.me .halo{inset:0;background:#378ADD;opacity:.22}
+.me .dot{left:10px;top:10px;width:14px;height:14px;background:#378ADD;border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.lbl{background:none;border:0;pointer-events:none}
+.lbl span{
+  position:absolute;left:0;top:0;transform:translate(-50%,-50%);white-space:nowrap;
+  font-size:10.5px;font-weight:700;letter-spacing:.01em;color:#fff;
+  text-shadow:0 0 3px #000,0 0 2px #000,0 0 1px #000;
+}
+.lbl.eau span{color:#BFE3FF}
+.plan .lbl span{color:#5A4526;text-shadow:0 0 3px #EEE8D6,0 0 2px #EEE8D6,0 0 1px #EEE8D6}
+.plan .lbl.eau span{color:#1F6FB8}
+:root[data-theme="dark"] .plan .lbl span{color:#E6D3AE;text-shadow:0 0 3px #22251C,0 0 2px #22251C}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .plan .lbl span{color:#E6D3AE;text-shadow:0 0 3px #22251C,0 0 2px #22251C}}
+.me .halo{animation:pulse 2.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.22}50%{opacity:.07}}
-@media (prefers-reduced-motion:reduce){.gps-pulse{animation:none}}
+@media (prefers-reduced-motion:reduce){.me .halo{animation:none}}
 #loading{
   position:absolute;inset:0;background:color-mix(in srgb,var(--sand) 88%,transparent);
   display:grid;place-items:center;z-index:5;gap:10px;
@@ -336,7 +328,6 @@ select.inp{
 #toast.show{opacity:1;transform:translate(-50%,0)}
 @media (min-width:760px){
   #sheet{left:auto;right:16px;bottom:16px;width:400px;border-radius:20px;max-height:min(720px,86dvh)}
-  #setup{max-width:560px;margin:0 auto;width:100%}
   #popup{left:auto;right:10px;width:330px}
 }
 </style>
@@ -376,48 +367,6 @@ select.inp{
 
 <div id="app">
 
-  <!-- ========================= Écran d'accueil ======================== -->
-  <section id="setup">
-    <div class="hero">
-      <div class="mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M12 14.2c-2.6 0-5.4 1.8-5.4 4.1 0 1.6 1.4 2.4 3 2.4.9 0 1.7-.3 2.4-.3s1.5.3 2.4.3c1.6 0 3-.8 3-2.4 0-2.3-2.8-4.1-5.4-4.1Z"/><ellipse cx="6.2" cy="11" rx="2.1" ry="2.7"/><ellipse cx="17.8" cy="11" rx="2.1" ry="2.7"/><ellipse cx="9.6" cy="6.3" rx="1.9" ry="2.5"/><ellipse cx="14.4" cy="6.3" rx="1.9" ry="2.5"/></svg>
-      </div>
-      <h1>Leadwood Tracker</h1>
-      <p>Signalez les animaux en temps réel</p>
-    </div>
-
-    <div class="card">
-      <h3>1 · Carte de la réserve</h3>
-      <label class="drop" id="drop">
-        <input type="file" id="pdfInput" accept="application/pdf,.pdf" hidden>
-        <span class="big" aria-hidden="true">🗺️</span>
-        <span class="t" id="dropText">Appuyez pour choisir le PDF de la réserve</span>
-      </label>
-      <p class="hint">La carte est conservée dans l'application : vous ne l'importerez qu'une seule fois, même hors réseau.</p>
-      <p class="check warn" id="mapStatus" hidden></p>
-      <div class="check warn" id="bundleHint" hidden>
-        <span>💡</span>
-        <span>Pour que plus personne n'ait à importer quoi que ce soit : déposez la carte dans le dépôt sous le nom <strong>carte.pdf</strong>. Elle se chargera alors toute seule sur chaque appareil.</span>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>2 · Coins de la carte</h3>
-      <div class="bounds">
-        <div><label for="bN">Nord (lat. max)</label><input id="bN" type="text" inputmode="decimal"></div>
-        <div><label for="bS">Sud (lat. min)</label><input id="bS" type="text" inputmode="decimal"></div>
-        <div><label for="bW">Ouest (long. min)</label><input id="bW" type="text" inputmode="decimal"></div>
-        <div><label for="bE">Est (long. max)</label><input id="bE" type="text" inputmode="decimal"></div>
-      </div>
-      <div class="check" id="aspect" hidden></div>
-      <p class="hint">Ces quatre valeurs sont les coordonnées des <strong>bords</strong> du PDF, pas du contenu dessiné. Elles servent à convertir la position GPS en position sur la carte.</p>
-    </div>
-
-    <button class="btn" id="startBtn">Démarrer</button>
-    <button class="btn-ghost" id="setupSync" style="width:100%">Partage entre véhicules</button>
-    <p class="hint" style="text-align:center">Si la carte est rangée dans Supabase, connectez-vous ici : elle se chargera toute seule.</p>
-  </section>
-
   <!-- ============================= Carte ============================= -->
   <section id="screen" hidden>
     <header id="topbar">
@@ -435,10 +384,7 @@ select.inp{
     </header>
 
     <div id="maparea">
-      <div id="stage">
-        <canvas id="canvas"></canvas>
-      </div>
-      <svg id="overlay"></svg>
+      <div id="map"></div>
 
       <div id="loading" hidden><div class="spinner"></div></div>
       <div id="crosshair" hidden><div class="c"></div></div>
@@ -455,11 +401,13 @@ select.inp{
         </button>
         <button id="btnZoomIn" aria-label="Zoomer">+</button>
         <button id="btnZoomOut" aria-label="Dézoomer">−</button>
-        <button id="btnFit" aria-label="Voir toute la carte">
+        <button id="btnFond" aria-label="Changer le fond de carte">
+          <svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13.5 12 18.5l9-5"/></svg>
+        </button>
+        <button id="btnFit" aria-label="Voir toute la réserve">
           <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
         </button>
       </div>
-      <div class="scalebar" id="scale" hidden><i id="scaleBar"></i><span id="scaleTxt"></span></div>
 
       <div id="popup" hidden></div>
     </div>
@@ -479,49 +427,19 @@ select.inp{
 </section>
 <div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="importInput" accept="application/json,.json" hidden>
-<input type="file" id="pdfSwap" accept="application/pdf,.pdf" hidden>
 
 <script src="config.js"></script>
-<script src="pdf.min.js"></script>
-<script>
-// Repli : si pdf.min.js n'a pas été déposé sur le serveur, on va
-// le chercher sur un CDN. L'app fonctionne alors dès le premier
-// lancement connecté, et le service worker met la bibliothèque en cache
-// pour les suivants. Déposer les deux fichiers reste préférable : plus
-// rien à télécharger, même au tout premier démarrage.
-//
-// Chargement par insertion de balise plutôt que par document.write :
-// Chrome refuse d'exécuter un script tiers injecté par document.write
-// sur les connexions lentes — exactement la situation sur le terrain.
-window.__PDFCDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
-window.pdfReady = (function () {
-  if (typeof pdfjsLib !== "undefined") {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
-    return Promise.resolve("local");
-  }
-  return new Promise(function (resolve, reject) {
-    var s = document.createElement("script");
-    s.src = window.__PDFCDN + "pdf.min.js";
-    s.onload = function () {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = window.__PDFCDN + "pdf.worker.min.js";
-      resolve("cdn");
-    };
-    s.onerror = function () { reject(new Error("pdf.js introuvable")); };
-    document.head.appendChild(s);
-  });
-})();
-window.pdfReady.catch(function () {});   // l'échec est traité au moment de l'usage
-</script>
+<script src="leaflet.js"></script>
+<script src="reserve.js"></script>
 <script>
 /* =================================================================== *
  *  Leadwood Tracker — logique
- *  Les signalements et la carte restent sur l'appareil.
+ *  Les signalements restent sur l'appareil ; la carte est vectorielle
+ *  (reserve.js, tiré des KMZ de la réserve) sur fond satellite.
  * =================================================================== */
 (function () {
 "use strict";
 
-const PDF_ABSENT = "Le moteur PDF n'a pas pu être chargé : déposez pdf.min.js et "
-                 + "pdf.worker.min.js dans le dépôt, ou connectez-vous une fois au réseau.";
 
 /* =================================================================== *
  *  Écran d'accès — MESURE PROVISOIRE
@@ -599,6 +517,7 @@ const ANIMALS = [
 ];
 const A = Object.fromEntries(ANIMALS.map(a => [a.id, a]));
 
+// Emprise de secours, si reserve.js manquait : la zone de Leadwood.
 const DEFAULT_BOUNDS = { maxLat:-24.371180, minLng:30.900230, minLat:-24.470152, maxLng:30.995868 };
 
 /* ------------------------------ Stockage ---------------------------- */
@@ -612,187 +531,25 @@ function lsSet(k, v) {
 }
 
 let sightings = lsGet(K_SIGHT, []);
-let prefs = lsGet(K_PREFS, { bounds:DEFAULT_BOUNDS, theme:"auto" });
-if (!prefs.bounds) prefs.bounds = DEFAULT_BOUNDS;
+let prefs = lsGet(K_PREFS, { theme:"auto" });
+if (!prefs.fond) prefs.fond = "sat";
 
-// La carte PDF vit dans IndexedDB : trop volumineuse pour localStorage.
-const DB = "leadwood", STORE = "files";
-function idb() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open(DB, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(STORE);
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-  });
-}
-async function idbPut(key, val) {
-  const db = await idb();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(val, key);
-    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
-  });
-}
-async function idbGet(key) {
-  const db = await idb();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, "readonly");
-    const rq = tx.objectStore(STORE).get(key);
-    rq.onsuccess = () => res(rq.result || null);
-    rq.onerror = () => rej(rq.error);
-  });
-}
-async function idbDel(key) {
-  const db = await idb();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).delete(key);
-    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
-  });
-}
-
-/* La carte livrée avec l'application : « carte.pdf » déposé à la racine du
-   dépôt. Présente, elle évite à chaque guide d'importer quoi que ce soit.
-   Elle n'est pas recopiée dans IndexedDB : le service worker la garde en
-   cache pour le hors-ligne, et une nouvelle version publiée remplace
-   l'ancienne au prochain changement de VERSION dans sw.js. */
-/* Carte rangée dans Supabase Storage (bucket « cartes »), accessible aux
-   seuls comptes connectés. Une copie est gardée sur l'appareil pour que
-   la carte reste disponible hors réseau. */
-function mo(n) { return (n / 1048576).toFixed(1).replace(".", ",") + " Mo"; }
-function mapStatus(txt) {
-  const el = $("mapStatus");
-  if (!el) return;
-  el.hidden = !txt;
-  el.innerHTML = txt || "";
-}
-async function cachedRemote() {
-  try { return await idbGet("map-remote"); } catch (e) { return null; }
-}
-// La carte officielle de l'équipe, rangée dans Supabase. Elle peut peser
-// plusieurs dizaines de Mo : on affiche la progression, sinon le guide
-// croit que rien ne se passe. Copie gardée sur l'appareil pour le hors-ligne.
-async function fetchStorageMap() {
-  S.mapErr = null;
-  if (!syncOn()) { S.mapErr = "nosync"; return cachedRemote(); }
-  if (!loggedIn()) { S.mapErr = "nologin"; return cachedRemote(); }
-  try {
-    const h = await heads();
-    delete h["Content-Type"];
-    mapStatus("⏳ Téléchargement de la carte de la réserve…");
-    const r = await fetch(base() + "/storage/v1/object/cartes/carte.pdf", { headers:h, cache:"no-store" });
-    if (!r.ok) { S.mapErr = "http" + r.status; throw new Error(r.status); }
-    const total = +r.headers.get("Content-Length") || 0;
-    let buf;
-    if (r.body && r.body.getReader) {
-      const reader = r.body.getReader(), parts = [];
-      let got = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        parts.push(value); got += value.length;
-        mapStatus("⏳ Téléchargement de la carte… " + mo(got) + (total ? " / " + mo(total) : ""));
-      }
-      const all = new Uint8Array(got);
-      let off = 0;
-      parts.forEach(pt => { all.set(pt, off); off += pt.length; });
-      buf = all.buffer;
-    } else {
-      buf = await r.arrayBuffer();
-    }
-    if (!isPdf(buf)) { S.mapErr = "notpdf"; throw new Error("pas un pdf"); }
-    mapStatus("⏳ Préparation de la carte (" + mo(buf.byteLength) + ")…");
-    idbPut("map-remote", buf).catch(() => {});
-    return buf;
-  } catch (e) {
-    if (!S.mapErr) S.mapErr = navigator.onLine ? "network" : "offline";
-    return cachedRemote();
-  }
-}
-// Sans carte, on dit pourquoi au lieu de laisser l'écran d'import muet.
-function explainNoMap() {
-  const why = {
-    nosync:  "La carte de la réserve est dans Supabase : appuyez sur <strong>Partage entre véhicules</strong> et connectez-vous, elle se chargera toute seule.",
-    nologin: "Connectez-vous pour recevoir la carte de la réserve.",
-    http400: "Aucune carte dans Supabase : déposez-la dans Storage → <strong>cartes</strong>, sous le nom exact <strong>carte.pdf</strong>.",
-    http404: "Aucune carte dans Supabase : déposez-la dans Storage → <strong>cartes</strong>, sous le nom exact <strong>carte.pdf</strong>.",
-    http401: "Accès à la carte refusé : reconnectez-vous.",
-    http403: "Accès à la carte refusé : vérifiez la politique du bucket <strong>cartes</strong>.",
-    notpdf:  "Le fichier carte.pdf dans Supabase n'est pas un PDF valide.",
-    offline: "Pas de réseau, et la carte n'a encore jamais été téléchargée sur cet appareil.",
-    network: "La carte n'a pas pu être téléchargée : réseau instable. Rechargez la page pour réessayer."
-  };
-  mapStatus(S.mapErr && why[S.mapErr] ? "⚠ " + why[S.mapErr] : "");
-  if (S.mapErr) $("bundleHint").hidden = true;
-}
-function isPdf(buf) {
-  const sig = String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 5)));
-  return sig === "%PDF-";
-}
-
-// Après une connexion faite depuis l'écran d'accueil, la carte rangée dans
-// Supabase devient accessible : on la charge sans attendre un rechargement.
-async function loadMapAfterLogin() {
-  const buf = await fetchStorageMap();
-  if (buf) {
-    S.mapSource = "supabase";
-    idbDel("map").catch(() => {});        // la carte officielle remplace l'import manuel
-    mapStatus("");
-    if (S.rendered) { $("loading").hidden = false; await renderPdf(buf); fit(); }
-    else await enterMap(buf);
-  } else if (!S.rendered) explainNoMap();
-}
-
-async function fetchBundledMap() {
-  try {
-    const r = await fetch("carte.pdf");
-    if (!r.ok) return null;
-    const buf = await r.arrayBuffer();
-    // Un hébergeur qui renvoie une page d'erreur en 200 nous donnerait du
-    // HTML : on vérifie la signature du fichier plutôt que l'en-tête.
-    return isPdf(buf) ? buf : null;
-  } catch (e) { return null; }
-}
+// L'ancienne carte PDF (jusqu'à 25 Mo) était copiée dans IndexedDB : on
+// libère cette place sur les téléphones déjà équipés.
+try { indexedDB.deleteDatabase("leadwood"); } catch (e) {}
 
 /* -------------------------------- État ------------------------------ */
 const S = {
-  pdfW:0, pdfH:0, rendered:false,
-  k:1, tx:0, ty:0, fitK:1,
+  rendered:false, rb:null, renderer:null,
   pos:null, acc:null, gps:"searching",
   animal:null, follow:true,
-  placing:false, selected:null, pendingFile:null, mapSource:null, B:1
+  placing:false, selected:null
 };
 let watchId = null;
 
 const $ = (id) => document.getElementById(id);
-const mapArea = $("maparea"), stage = $("stage"), canvas = $("canvas"), overlay = $("overlay");
 
-/* --------------------------- Géo ↔ carte ---------------------------- */
-function b() { return prefs.bounds; }
-function geoToXY(lat, lng) {
-  const B = b();
-  return {
-    x: ((lng - B.minLng) / (B.maxLng - B.minLng)) * S.pdfW,
-    y: ((B.maxLat - lat) / (B.maxLat - B.minLat)) * S.pdfH
-  };
-}
-function xyToGeo(x, y) {
-  const B = b();
-  return {
-    lat: B.maxLat - (y / S.pdfH) * (B.maxLat - B.minLat),
-    lng: B.minLng + (x / S.pdfW) * (B.maxLng - B.minLng)
-  };
-}
-function inBounds(lat, lng) {
-  const B = b();
-  return lat <= B.maxLat && lat >= B.minLat && lng >= B.minLng && lng <= B.maxLng;
-}
-function metersPerUnit() {                    // mètres par point PDF
-  const B = b(), mid = (B.maxLat + B.minLat) / 2;
-  const wm = (B.maxLng - B.minLng) * 111320 * Math.cos(mid * Math.PI / 180);
-  const hm = (B.maxLat - B.minLat) * 110574;
-  return ((wm / S.pdfW) + (hm / S.pdfH)) / 2;
-}
+/* ------------------------------- Géo -------------------------------- */
 function distance(a1, o1, a2, o2) {           // haversine, en mètres
   const R = 6371000, r = Math.PI / 180;
   const dLat = (a2 - a1) * r, dLng = (o2 - o1) * r;
@@ -807,282 +564,183 @@ function bearing(a1, o1, a2, o2) {
   return ["N","NE","E","SE","S","SO","O","NO"][Math.round(d / 45) % 8];
 }
 
-/* ------------------------------ Accueil ----------------------------- */
-function fillBounds() {
-  const B = b();
-  $("bN").value = B.maxLat; $("bS").value = B.minLat;
-  $("bW").value = B.minLng; $("bE").value = B.maxLng;
-}
-function readBounds() {
-  const n = (id) => parseFloat(String($(id).value).replace(",", "."));
-  const v = { maxLat:n("bN"), minLat:n("bS"), minLng:n("bW"), maxLng:n("bE") };
-  if (Object.values(v).some(x => !isFinite(x))) return null;
-  if (v.maxLat <= v.minLat || v.maxLng <= v.minLng) return null;
-  return v;
-}
-/* Compare les proportions de la page PDF à celles de la zone décrite par
-   les quatre coins. Un écart important signifie que les coordonnées ne
-   correspondent pas aux bords de la page, et que toutes les positions
-   seront décalées — le genre d'erreur qui ne se voit qu'en brousse. */
-function aspectDiff(v) {
-  if (!v || !S.pdfW || !S.pdfH) return null;
-  const mid = (v.maxLat + v.minLat) / 2;
-  const geo = ((v.maxLng - v.minLng) * Math.cos(mid * Math.PI / 180)) / (v.maxLat - v.minLat);
-  const pdf = S.pdfW / S.pdfH;
-  return { ecart: Math.abs(pdf - geo) / geo, large: pdf / geo > 1 };
-}
-function paintAspect(box, v) {
-  const d = aspectDiff(v);
-  if (!box) return;
-  if (!d) { box.hidden = true; return; }
-  box.hidden = false;
-  const pct = (d.ecart * 100).toFixed(0);
-  if (d.ecart < 0.08) {
-    box.className = "check ok";
-    box.innerHTML = `<span>✓</span><span>Les proportions du PDF correspondent à la zone décrite (écart ${pct} %). Le calage est fidèle.</span>`;
-  } else {
-    box.className = "check warn";
-    box.innerHTML = `<span>⚠</span><span>Le PDF est ${d.large ? "plus large" : "plus étroit"} que la zone décrite (écart ${pct} %). Les positions seront décalées : vérifiez que les coordonnées correspondent bien aux <strong>bords de la page</strong>, et non au dessin.</span>`;
+/* ------------------------- Données de la réserve -------------------- */
+/* reserve.js est généré à partir des fichiers KMZ de la réserve (limite
+   de Rietspruit, routes de Leadwood, Bloubank et Khaya Ndlovu) par
+   outils/kmz2js.py. Les coordonnées y sont réelles : plus aucun calage. */
+const RES = window.LW_RESERVE || { limite:[], lignes:[], noms:[] };
+const Z_NOMS = 15;                    // noms des routes à partir de ce zoom
+
+function pointDansAnneau(lat, lng, ring) {
+  let dedans = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [ai, oi] = ring[i], [aj, oj] = ring[j];
+    if (((ai > lat) !== (aj > lat)) && (lng < (oj - oi) * (lat - ai) / (aj - ai) + oi)) dedans = !dedans;
   }
+  return dedans;
 }
-function checkAspect() { paintAspect($("aspect"), readBounds()); }
-
-$("pdfInput").addEventListener("change", async (e) => {
-  const f = e.target.files && e.target.files[0];
-  e.target.value = "";
-  if (!f) return;
-  S.pendingFile = f;
-  $("drop").classList.add("ok");
-  $("dropText").innerHTML = "✅ " + esc(f.name) + " · " + Math.round(f.size / 1024) + " ko";
-  try { await window.pdfReady; } catch (err) { toast(PDF_ABSENT); return; }
-  try {                                   // mesurer la page pour le contrôle de cohérence
-    const buf = await f.arrayBuffer();
-    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
-    const vp = (await doc.getPage(1)).getViewport({ scale:1 });
-    S.pdfW = vp.width; S.pdfH = vp.height;
-    checkAspect();
-  } catch (err) { toast("Ce fichier ne peut pas être lu comme PDF."); }
-});
-["bN","bS","bW","bE"].forEach(id => $(id).addEventListener("input", checkAspect));
-
-$("setupSync").addEventListener("click", openSync);
-
-$("startBtn").addEventListener("click", async () => {
-  const v = readBounds();
-  if (!v) { toast("Coordonnées incomplètes ou incohérentes."); return; }
-  if (!S.pendingFile) { toast("Choisissez d'abord le PDF de la réserve."); return; }
-  prefs.bounds = v; lsSet(K_PREFS, prefs);
-  const buf = await S.pendingFile.arrayBuffer();
-  await idbPut("map", buf).catch(() => toast("La carte n'a pas pu être mémorisée ; elle restera valable pour cette session."));
-  await enterMap(buf);
-});
+// Dans la réserve, avec ~130 m de tolérance : un GPS qui flotte le long
+// de la clôture ne doit pas faire basculer l'app en « hors réserve ».
+function inReserve(lat, lng) {
+  if (!RES.limite.length) {
+    const B = DEFAULT_BOUNDS;
+    return lat <= B.maxLat && lat >= B.minLat && lng >= B.minLng && lng <= B.maxLng;
+  }
+  const t = 0.0012;
+  return [[0,0],[t,0],[-t,0],[0,t],[0,-t]].some(([dl, dg]) =>
+    RES.limite.some(r => pointDansAnneau(lat + dl, lng + dg, r)));
+}
+function reserveBounds() {
+  const pts = RES.limite.length ? RES.limite.flat() : RES.lignes.flatMap(l => l.p);
+  if (!pts.length) {
+    const B = DEFAULT_BOUNDS;
+    return L.latLngBounds([[B.minLat, B.minLng], [B.maxLat, B.maxLng]]);
+  }
+  return L.latLngBounds(pts);
+}
 
 /* ------------------------------ La carte ---------------------------- */
-async function enterMap(buf) {
-  $("setup").hidden = true;
-  $("screen").hidden = false;
-  $("loading").hidden = false;
-  buildGrid();
-  try {
-    await renderPdf(buf);
-    fit();
-    startGPS();
-  } catch (e) {
-    $("loading").hidden = true;
-    toast(typeof pdfjsLib === "undefined" ? PDF_ABSENT
-      : (buf && buf.byteLength > 15 * 1048576
-          ? "Carte trop lourde pour ce téléphone (" + mo(buf.byteLength) + ") : il faut la compresser."
-          : "La carte n'a pas pu être affichée."));
-  }
+let map = null, fondSat = null, reserveLayer = null, nomsLayer = null, markerLayer = null;
+let gpsDot = null, gpsAcc = null;
+
+// Fond satellite : imagerie mondiale Esri, sans clé. Les tuiles consultées
+// sont gardées par le service worker pour les sorties hors réseau.
+const SAT_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
+function isDark() {
+  const t = prefs.theme || "auto";
+  return t === "dark" || (t === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+}
+function styles() {
+  if (prefs.fond === "sat") return {
+    casing:   { color:"#1A1408", weight:6, opacity:.45 },
+    route:    { color:"#FFE7A3", weight:3, opacity:.95 },
+    piste:    { color:"#FFFFFF", weight:2, opacity:.85, dashArray:"6 5" },
+    interdit: { color:"#FF4D3D", weight:2.6, opacity:.95, dashArray:"2 6" },
+    limite:   { color:"#FFB020", weight:3.5, opacity:1, fill:false }
+  };
+  const d = isDark();
+  return {
+    casing:   null,
+    route:    { color:d ? "#D9A86C" : "#8C5A2B", weight:3, opacity:.95 },
+    piste:    { color:d ? "#C9A57A" : "#8C5A2B", weight:1.8, opacity:.8, dashArray:"5 4" },
+    interdit: { color:d ? "#FF6F5E" : "#C0392B", weight:2.4, opacity:.95, dashArray:"2 5" },
+    limite:   { color:"#1D9E75", weight:3, opacity:1, fill:true, fillColor:"#1D9E75", fillOpacity:.06 }
+  };
+}
+const CLASSES = { route:"Route", piste:"Piste (2-track)", interdit:"No entry for Traverse" };
+
+function drawReserve() {
+  if (!map) return;
+  if (reserveLayer) map.removeLayer(reserveLayer);
+  const st = styles(), rnd = S.renderer;
+  const g = L.layerGroup();
+  RES.limite.forEach(r => L.polygon(r, Object.assign({ renderer:rnd, interactive:false }, st.limite)).addTo(g));
+  if (st.casing) RES.lignes.filter(l => l.c === "route").forEach(l =>
+    L.polyline(l.p, Object.assign({ renderer:rnd, interactive:false }, st.casing)).addTo(g));
+  ["piste", "route", "interdit"].forEach(c => RES.lignes.filter(l => l.c === c).forEach(l => {
+    const pl = L.polyline(l.p, Object.assign({ renderer:rnd }, st[c] || st.route));
+    // Toucher une route donne son nom : utile pour annoncer un animal à la radio.
+    pl.on("click", (e) => {
+      L.DomEvent.stopPropagation(e);
+      toast((c === "interdit" ? "⛔ " : "") + (l.n || "Route sans nom") + " · " + CLASSES[c] + (l.z ? " · " + l.z : ""));
+    });
+    pl.addTo(g);
+  }));
+  reserveLayer = g.addTo(map);
+  if (markerLayer) { markerLayer.remove(); markerLayer.addTo(map); }   // repères au-dessus
 }
 
-async function renderPdf(buf) {
-  await window.pdfReady;
-  const doc = await pdfjsLib.getDocument({ data:new Uint8Array(buf.slice(0)) }).promise;
-  const page = await doc.getPage(1);
-  const vp1 = page.getViewport({ scale:1 });
-  S.pdfW = vp1.width; S.pdfH = vp1.height;
+function buildNoms() {
+  nomsLayer = L.layerGroup();
+  RES.noms.forEach(([lat, lng, nom, t]) => {
+    if (!nom) return;
+    L.marker([lat, lng], {
+      icon:L.divIcon({ className:"lbl" + (t === "eau" ? " eau" : ""), html:"<span>" + esc(nom) + "</span>", iconSize:[0, 0] }),
+      interactive:false, keyboard:false
+    }).addTo(nomsLayer);
+  });
+}
+function majNoms() {
+  if (!map || !nomsLayer) return;
+  const voir = map.getZoom() >= Z_NOMS;
+  if (voir && !map.hasLayer(nomsLayer)) nomsLayer.addTo(map);
+  else if (!voir && map.hasLayer(nomsLayer)) map.removeLayer(nomsLayer);
+}
 
-  // Résolution : nette jusqu'à ~3× le zoom d'ensemble, plafonnée en mémoire.
-  const area = mapArea.getBoundingClientRect();
-  const fitK = Math.min(area.width / S.pdfW, area.height / S.pdfH) || 1;
-  let r = Math.min(fitK * 3 * (window.devicePixelRatio || 1), 6);
-  const MAXPX = 16e6;
-  if (S.pdfW * r * S.pdfH * r > MAXPX) r = Math.sqrt(MAXPX / (S.pdfW * S.pdfH));
+function setFond(f) {
+  prefs.fond = f === "plan" ? "plan" : "sat";
+  lsSet(K_PREFS, prefs);
+  if (!map) return;
+  if (prefs.fond === "sat") { if (!map.hasLayer(fondSat)) fondSat.addTo(map); }
+  else if (map.hasLayer(fondSat)) map.removeLayer(fondSat);
+  $("map").classList.toggle("plan", prefs.fond !== "sat");
+  $("btnFond").classList.toggle("on", prefs.fond === "plan");
+  drawReserve();
+}
 
-  const vp = page.getViewport({ scale:r });
-  canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
-  // Le cadre CSS de la carte ne doit jamais être gigantesque. Un plan grand
-  // format mesure des milliers de points : Safari plafonne la taille des
-  // calques graphiques et dessine alors la carte réduite, dans un coin.
-  // On borne le cadre à 1 200 px et on compense dans le facteur de zoom.
-  S.B = Math.min(1, 1200 / Math.max(S.pdfW, S.pdfH));
-  canvas.style.width = (S.pdfW * S.B) + "px"; canvas.style.height = (S.pdfH * S.B) + "px";
-  await page.render({ canvasContext:canvas.getContext("2d", { alpha:false }), viewport:vp }).promise;
+function initMap() {
+  S.rb = reserveBounds();
+  // Rendu canvas : ~300 tracés restent fluides même sur un vieux téléphone,
+  // et la tolérance élargit la zone de toucher d'une route.
+  S.renderer = L.canvas({ padding:0.5, tolerance:10 });
+  map = L.map("map", {
+    zoomControl:false, attributionControl:true, renderer:S.renderer,
+    maxBounds:S.rb.pad(0.6), maxBoundsViscosity:0.8,
+    minZoom:11, maxZoom:19, zoomSnap:0.25, wheelPxPerZoomLevel:90
+  });
+  map.attributionControl.setPrefix(false);
+  L.control.scale({ imperial:false, position:"bottomleft", maxWidth:110 }).addTo(map);
+  fondSat = L.tileLayer(SAT_URL, {
+    maxNativeZoom:17, maxZoom:19, crossOrigin:"anonymous", keepBuffer:3,
+    attribution:"Imagerie © Esri, Maxar, Earthstar Geographics"
+  });
+  map.fitBounds(S.rb, { padding:[12, 12] });
+  markerLayer = L.layerGroup().addTo(map);
+  buildNoms();
+  setFond(prefs.fond);
+  majNoms();
+
+  map.on("dragstart", () => setFollow(false));
+  map.on("zoomend", () => { majNoms(); drawOverlay(); });
+  map.on("click", () => { if (!S.placing) closePopup(); });
+  // Appui long sur la carte : signaler l'animal choisi à cet endroit.
+  map.on("contextmenu", (e) => { if (S.animal && !S.placing) startPlacing(e.latlng); });
   S.rendered = true;
-  $("loading").hidden = true;
-  $("scale").hidden = false;
 }
 
-/* --------------------------- Zoom & déplacement --------------------- */
-function applyTransform() {
-  stage.style.transform = `translate(${S.tx}px,${S.ty}px) scale(${S.k / (S.B || 1)})`;
-  drawOverlay(); drawScale();
-}
-function fit() {
-  const a = mapArea.getBoundingClientRect();
-  S.fitK = Math.min(a.width / S.pdfW, a.height / S.pdfH);
-  S.k = S.fitK;
-  S.tx = (a.width - S.pdfW * S.k) / 2;
-  S.ty = (a.height - S.pdfH * S.k) / 2;
-  applyTransform();
-}
-function clampK(k) { return Math.max(S.fitK * 0.7, Math.min(S.fitK * 12, k)); }
-function zoomAt(sx, sy, factor) {
-  const k2 = clampK(S.k * factor);
-  const f = k2 / S.k;
-  S.tx = sx - (sx - S.tx) * f;
-  S.ty = sy - (sy - S.ty) * f;
-  S.k = k2;
-  clampPan(); applyTransform();
-}
-function clampPan() {
-  const a = mapArea.getBoundingClientRect();
-  const w = S.pdfW * S.k, h = S.pdfH * S.k, m = 60;
-  S.tx = Math.min(a.width - m, Math.max(m - w, S.tx));
-  S.ty = Math.min(a.height - m, Math.max(m - h, S.ty));
-}
-function centerOn(x, y, k) {
-  const a = mapArea.getBoundingClientRect();
-  if (k) S.k = clampK(k);
-  S.tx = a.width / 2 - x * S.k;
-  S.ty = a.height / 2 - y * S.k;
-  clampPan(); applyTransform();
+function enterMap() {
+  if (S.rendered) return;
+  $("screen").hidden = false;
+  buildGrid();
+  initMap();
+  drawOverlay();
+  startGPS();
 }
 
-(function gestures() {
-  const pts = new Map();
-  let start = null, moved = 0, lastTap = 0, tapMarker = null, captured = false;
+function centerOn(lat, lng, z) {
+  if (!map) return;
+  map.setView([lat, lng], Math.max(map.getZoom(), z || 16));
+}
 
-  mapArea.addEventListener("pointerdown", (e) => {
-    // Les boutons posés sur la carte doivent recevoir leur clic normalement :
-    // on ne suit pas ces pointeurs, et surtout on ne les capture pas.
-    if (e.target && e.target.closest && e.target.closest("#tools,#placebar,#popup")) return;
-    // La capture du pointeur redirigerait le « click » vers #maparea :
-    // on retient donc ici le repère touché plutôt que d'attendre un click.
-    if (pts.size === 0) {
-      const g = e.target && e.target.closest ? e.target.closest(".hit") : null;
-      tapMarker = g ? g.dataset.id : null;
-    }
-    pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
-    moved = 0;
-    if (pts.size === 1) {
-      start = { x:e.clientX, y:e.clientY, tx:S.tx, ty:S.ty, t:Date.now() };
-      mapArea.classList.add("dragging");
-    } else if (pts.size === 2) {
-      const [p, q] = [...pts.values()];
-      start = {
-        d:Math.hypot(p.x - q.x, p.y - q.y), k:S.k,
-        cx:(p.x + q.x) / 2, cy:(p.y + q.y) / 2, tx:S.tx, ty:S.ty
-      };
-    }
-  });
-
-  mapArea.addEventListener("pointermove", (e) => {
-    if (!pts.has(e.pointerId)) return;
-    pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
-    const r = mapArea.getBoundingClientRect();
-    if (pts.size === 1 && start && start.tx !== undefined && start.d === undefined) {
-      const dx = e.clientX - start.x, dy = e.clientY - start.y;
-      moved = Math.max(moved, Math.hypot(dx, dy));
-      S.tx = start.tx + dx; S.ty = start.ty + dy;
-      if (moved > 8) {
-        setFollow(false);
-        // On ne capture qu'une fois le déplacement engagé : le doigt peut
-        // alors sortir de la carte sans interrompre le glissement.
-        if (!captured) { try { mapArea.setPointerCapture(e.pointerId); captured = true; } catch (err) {} }
-      }
-      clampPan(); applyTransform();
-    } else if (pts.size === 2 && start && start.d) {
-      const [p, q] = [...pts.values()];
-      const d = Math.hypot(p.x - q.x, p.y - q.y);
-      const k2 = clampK(start.k * (d / start.d));
-      const f = k2 / start.k;
-      const cx = start.cx - r.left, cy = start.cy - r.top;
-      S.tx = cx - (cx - start.tx) * f;
-      S.ty = cy - (cy - start.ty) * f;
-      S.k = k2; moved = 99;
-      setFollow(false); clampPan(); applyTransform();
-    }
-  });
-
-  function up(e) {
-    if (!pts.has(e.pointerId)) return;
-    pts.delete(e.pointerId);
-    captured = false;
-    mapArea.classList.remove("dragging");
-    if (pts.size === 0) {
-      const r = mapArea.getBoundingClientRect();
-      const quick = start && start.t && (Date.now() - start.t) < 350;
-      if (moved < 8 && tapMarker) {
-        openPopup(tapMarker);
-      } else if (moved < 8 && quick) {
-        const now = Date.now();
-        if (now - lastTap < 300) {                       // double tap → zoom
-          zoomAt(e.clientX - r.left, e.clientY - r.top, 1.9);
-          lastTap = 0;
-        } else {
-          lastTap = now;
-          closePopup();
-        }
-      } else if (moved < 8 && start && start.t && (Date.now() - start.t) >= 600 && S.animal && !S.placing) {
-        askPlaceHere(e.clientX - r.left, e.clientY - r.top);   // appui long → signaler ici
-      }
-      tapMarker = null;
-      start = null;
-    }
-  }
-  mapArea.addEventListener("pointerup", up);
-  mapArea.addEventListener("pointercancel", up);
-
-  mapArea.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const r = mapArea.getBoundingClientRect();
-    zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.15 : 1 / 1.15);
-    setFollow(false);
-  }, { passive:false });
-})();
-
-$("btnZoomIn").addEventListener("click", () => {
-  const a = mapArea.getBoundingClientRect(); zoomAt(a.width/2, a.height/2, 1.6);
+$("btnZoomIn").addEventListener("click", () => map && map.zoomIn(1));
+$("btnZoomOut").addEventListener("click", () => map && map.zoomOut(1));
+$("btnFit").addEventListener("click", () => { setFollow(false); map && map.fitBounds(S.rb, { padding:[12, 12] }); });
+$("btnFond").addEventListener("click", () => {
+  setFond(prefs.fond === "sat" ? "plan" : "sat");
+  toast(prefs.fond === "sat" ? "Fond satellite" : "Plan des routes — fonctionne sans réseau");
 });
-$("btnZoomOut").addEventListener("click", () => {
-  const a = mapArea.getBoundingClientRect(); zoomAt(a.width/2, a.height/2, 1/1.6);
-});
-$("btnFit").addEventListener("click", () => { setFollow(false); fit(); });
 $("btnFollow").addEventListener("click", () => {
   if (!S.pos) { toast("Position GPS pas encore disponible."); return; }
   setFollow(!S.follow);
-  if (S.follow) { const p = geoToXY(S.pos.lat, S.pos.lng); centerOn(p.x, p.y, Math.max(S.k, S.fitK * 3)); }
+  if (S.follow) centerOn(S.pos.lat, S.pos.lng, 16);
 });
 function setFollow(v) { S.follow = v; $("btnFollow").classList.toggle("on", v); }
 
 window.addEventListener("resize", () => {
   syncPanelHeight();
-  if (S.rendered) { clampPan(); applyTransform(); }
+  if (map) map.invalidateSize();
 });
-
-/* ----------------------------- Échelle ------------------------------ */
-function drawScale() {
-  if (!S.rendered) return;
-  const mpu = metersPerUnit();                    // m par point PDF
-  const mpp = mpu / S.k;                          // m par pixel écran
-  const targets = [50,100,200,500,1000,2000,5000];
-  let best = targets[0];
-  for (const t of targets) { if (t / mpp <= 120) best = t; }
-  $("scaleBar").style.width = Math.round(best / mpp) + "px";
-  $("scaleTxt").textContent = best >= 1000 ? (best/1000) + " km" : best + " m";
-}
 
 /* --------------------------- Géolocalisation ------------------------ */
 function startGPS() {
@@ -1091,11 +749,13 @@ function startGPS() {
     (p) => {
       S.pos = { lat:p.coords.latitude, lng:p.coords.longitude };
       S.acc = p.coords.accuracy;
-      setGps(inBounds(S.pos.lat, S.pos.lng) ? "ok" : "out");
+      const premier = !S.pos0; S.pos0 = true;
+      setGps(inReserve(S.pos.lat, S.pos.lng) ? "ok" : "out");
       if (S.follow && S.gps === "ok") {
-        const q = geoToXY(S.pos.lat, S.pos.lng);
-        centerOn(q.x, q.y, Math.max(S.k, S.fitK * 3));
-      } else { drawOverlay(); }
+        if (premier) centerOn(S.pos.lat, S.pos.lng, 15);
+        else map.panTo([S.pos.lat, S.pos.lng], { animate:true });
+      }
+      drawGps();
     },
     (err) => setGps(err.code === 1 ? "denied" : "error"),
     { enableHighAccuracy:true, maximumAge:5000, timeout:20000 }
@@ -1114,7 +774,7 @@ function setGps(s) {
   }[s] || ["error", s];
   el.className = "badge " + map[0];
   el.innerHTML = '<span class="led"></span>' + map[1];
-  updateReport(); drawOverlay();
+  updateReport(); drawGps();
 }
 
 /* ------------------------------ Signalements ------------------------ */
@@ -1205,61 +865,48 @@ function updateCount() {
 }
 
 /* ----------------------------- Placement ---------------------------- */
-function startPlacing(atX, atY) {
+function startPlacing(ll) {
   if (!S.animal) { toast("Choisissez d'abord un animal."); return; }
   S.placing = true;
+  closePopup();
   $("crosshair").hidden = false;
   $("placebar").hidden = false;
   $("placeText").textContent = `Amenez le repère sur l'emplacement de ${A[S.animal].nom.toLowerCase()}.`;
   $("tools").hidden = true;
   setFollow(false);
-  if (atX !== undefined) {
-    const a = mapArea.getBoundingClientRect();
-    S.tx += a.width / 2 - atX; S.ty += a.height / 2 - atY;
-    clampPan(); applyTransform();
-  }
+  if (ll) map.panTo(ll);
 }
 function endPlacing(commit) {
   if (commit) {
-    const a = mapArea.getBoundingClientRect();
-    const x = (a.width / 2 - S.tx) / S.k, y = (a.height / 2 - S.ty) / S.k;
-    if (x < 0 || y < 0 || x > S.pdfW || y > S.pdfH) { toast("Ce point est hors de la carte."); return; }
-    const g = xyToGeo(x, y);
-    addSighting(g.lat, g.lng, null);
+    const c = map.getCenter();
+    if (!S.rb.pad(0.25).contains(c)) { toast("Ce point est hors de la carte de la réserve."); return; }
+    addSighting(c.lat, c.lng, null);
   }
   S.placing = false;
   $("crosshair").hidden = true;
   $("placebar").hidden = true;
   $("tools").hidden = false;
 }
-function askPlaceHere(sx, sy) { startPlacing(sx, sy); }
 $("placeGo").addEventListener("click", () => endPlacing(true));
 $("placeNo").addEventListener("click", () => endPlacing(false));
 
 /* ------------------------------ Overlay ----------------------------- */
+function pinSvg(an) {
+  return `<svg width="46" height="46" viewBox="-23 -40 46 46" aria-hidden="true">
+    <path d="M0 2 L-13 -14 A17 17 0 1 1 13 -14 Z" fill="${an.c}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="0" cy="-17" r="13.5" fill="${an.c}" stroke="#fff" stroke-width="2.5"/>
+    <text x="0" y="-12" text-anchor="middle" font-size="15">${an.e}</text></svg>`;
+}
 function drawOverlay() {
-  if (!S.rendered) return;
-  const a = mapArea.getBoundingClientRect();
-  overlay.setAttribute("viewBox", `0 0 ${a.width} ${a.height}`);
-  overlay.setAttribute("width", a.width);
-  overlay.setAttribute("height", a.height);
-  const sx = (x) => S.tx + x * S.k, sy = (y) => S.ty + y * S.k;
-  let html = "";
-
-  // signalements encore valides
+  if (!map) return;
+  markerLayer.clearLayers();
   const now = Date.now(), exp = expiryMs();
-  const vis = [];
-  live().forEach(s => {
-    const p = geoToXY(s.lat, s.lng);
-    const X = sx(p.x), Y = sy(p.y);
-    if (X < -40 || Y < -40 || X > a.width + 40 || Y > a.height + 40) return;
-    vis.push({ s, X, Y });
-  });
+  const vis = live().map(s => ({ s, pt:map.latLngToLayerPoint([s.lat, s.lng]) }));
   // Deux animaux signalés au même endroit : on les écarte en éventail,
   // sinon le dernier repère masque complètement les précédents.
   const buckets = new Map();
   vis.forEach(v => {
-    const key = Math.round(v.X / 20) + "," + Math.round(v.Y / 20);
+    const key = Math.round(v.pt.x / 20) + "," + Math.round(v.pt.y / 20);
     if (!buckets.has(key)) buckets.set(key, []);
     buckets.get(key).push(v);
   });
@@ -1268,33 +915,39 @@ function drawOverlay() {
     const r = 15 + group.length * 1.5;
     group.forEach((v, i) => {
       const ang = (i / group.length) * Math.PI * 2 - Math.PI / 2;
-      v.X += Math.cos(ang) * r; v.Y += Math.sin(ang) * r;
+      v.pt = L.point(v.pt.x + Math.cos(ang) * r, v.pt.y + Math.sin(ang) * r);
     });
   });
-  vis.forEach(({ s, X, Y }) => {
+  vis.forEach(({ s, pt }) => {
     const an = A[s.animal] || A.autre;
     const age = now - new Date(s.ts).getTime();
     const fade = exp === Infinity ? 1 : Math.max(.35, 1 - (age / exp) * .65);
-    html += `<g class="hit" data-id="${s.id}" transform="translate(${X.toFixed(1)},${Y.toFixed(1)})" opacity="${fade.toFixed(2)}">
-      <circle class="grab" cx="0" cy="-13" r="23" fill="transparent"/>
-      <path d="M0 2 L-13 -14 A17 17 0 1 1 13 -14 Z" fill="${an.c}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
-      <circle cx="0" cy="-17" r="13.5" fill="${an.c}" stroke="#fff" stroke-width="2.5"/>
-      <text x="0" y="-12" text-anchor="middle" font-size="15">${an.e}</text>
-    </g>`;
+    const m = L.marker(map.layerPointToLatLng(pt), {
+      icon:L.divIcon({ className:"pin", html:pinSvg(an), iconSize:[46, 46], iconAnchor:[23, 40] }),
+      opacity:fade, keyboard:false, zIndexOffset:Math.round(new Date(s.ts).getTime() / 1000 % 1e6)
+    });
+    m.on("click", () => openPopup(s.id));
+    m.on("add", () => { const el = m.getElement(); if (el) el.dataset.id = s.id; });
+    m.addTo(markerLayer);
   });
+  drawGps();
+}
 
-  // position de l'observateur
-  if (S.pos && (S.gps === "ok")) {
-    const p = geoToXY(S.pos.lat, S.pos.lng);
-    const X = sx(p.x), Y = sy(p.y);
-    const rAcc = S.acc ? (S.acc / metersPerUnit()) * S.k : 0;
-    html += `<g transform="translate(${X.toFixed(1)},${Y.toFixed(1)})">
-      ${rAcc > 6 ? `<circle class="gps-pulse" r="${Math.min(rAcc, 260).toFixed(1)}" fill="#378ADD" opacity="0.18"/>` : ""}
-      <circle class="gps-pulse" r="17" fill="#378ADD" opacity="0.22"/>
-      <circle r="7.5" fill="#378ADD" stroke="#fff" stroke-width="2.5"/>
-    </g>`;
+// Position de l'observateur : point bleu + cercle de précision (en mètres réels).
+function drawGps() {
+  if (!map) return;
+  if (!S.pos) {
+    if (gpsDot) { gpsDot.remove(); gpsAcc.remove(); gpsDot = gpsAcc = null; }
+    return;
   }
-  overlay.innerHTML = html;   // l'ouverture du repère est gérée par les gestes
+  const ll = [S.pos.lat, S.pos.lng], r = Math.min(S.acc || 0, 500);
+  if (!gpsDot) {
+    gpsAcc = L.circle(ll, { radius:r, color:"#378ADD", weight:1, opacity:.45, fillOpacity:.12, interactive:false }).addTo(map);
+    gpsDot = L.marker(ll, {
+      icon:L.divIcon({ className:"me", html:'<i class="halo"></i><i class="dot"></i>', iconSize:[34, 34], iconAnchor:[17, 17] }),
+      interactive:false, keyboard:false, zIndexOffset:-1000
+    }).addTo(map);
+  } else { gpsDot.setLatLng(ll); gpsAcc.setLatLng(ll); gpsAcc.setRadius(r); }
 }
 
 /* ------------------------------- Popup ------------------------------ */
@@ -1329,7 +982,7 @@ function openPopup(id) {
   if (del) del.addEventListener("click", () => removeSighting(s.id));
   p.querySelector('[data-a="share"]').addEventListener("click", () => share(s));
   p.querySelector('[data-a="go"]').addEventListener("click", () => {
-    const q = geoToXY(s.lat, s.lng); setFollow(false); centerOn(q.x, q.y, Math.max(S.k, S.fitK * 4));
+    setFollow(false); centerOn(s.lat, s.lng, 16);
   });
 }
 function closePopup() { $("popup").hidden = true; S.selected = null; }
@@ -1423,8 +1076,7 @@ function openHist() {
       </span>`;
     btn.addEventListener("click", () => {
       closeSheet();
-      const q = geoToXY(s.lat, s.lng);
-      setFollow(false); centerOn(q.x, q.y, Math.max(S.fitK * 4, S.k));
+      setFollow(false); centerOn(s.lat, s.lng, 16);
       if (l) setTimeout(() => openPopup(s.id), 320);
     });
     rows.appendChild(btn);
@@ -1434,7 +1086,6 @@ function openHist() {
 function openSettings() {
   sheetMode = "set";
   openSheet("Réglages", `${known().length} signalement${known().length > 1 ? "s" : ""}`);
-  const B = b();
   const adm = isAdmin();
   $("sheetBody").innerHTML = `
     <div class="field">
@@ -1443,6 +1094,11 @@ function openSettings() {
         ? "Un repère reste sur la carte <strong>" + dureeH() + " h</strong>, puis disparaît : un animal vu il y a plus longtemps n'y est probablement plus. L'historique, lui, garde tout."
         : "Les repères restent sur la carte sans limite de durée."}
         Réglage commun à toute l'équipe.</p>
+    </div>
+    <div class="field">
+      <span class="label">Fond de carte</span>
+      <div class="seg" id="segFond"></div>
+      <p class="about">Le plan des routes fonctionne partout, même sans réseau. Le satellite garde en mémoire les zones déjà affichées.</p>
     </div>
     <div class="field">
       <span class="label">Thème</span>
@@ -1467,14 +1123,6 @@ function openSettings() {
       </div>
     </div>
     <div class="field">
-      <span class="label">Carte et calage</span>
-      <div class="menu">
-        <button id="swapMap"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13.5 12 18.5l9-5"/></svg>Changer le PDF de la réserve<span class="sub">${{ supabase:"carte de l'équipe", depot:"carte du dépôt", import:"import manuel" }[S.mapSource] || ""}</span></button>
-        ${S.mapSource === "import" ? `<button id="useBundled"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.3-6.4M21 12a9 9 0 0 1-15.3 6.4"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>Revenir à la carte de l'équipe</button>` : ""}
-        <button id="editB"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16l9-9 3 3-9 9H6v-3Z"/></svg>Modifier les coins GPS<span class="sub">${B.maxLat.toFixed(4)} / ${B.minLng.toFixed(4)}</span></button>
-      </div>
-    </div>
-    <div class="field">
       <span class="label">Données</span>
       <div class="menu">
         <button id="expJson"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 19h16"/></svg>Exporter les signalements<span class="sub">JSON</span></button>
@@ -1486,16 +1134,25 @@ function openSettings() {
     </div>` : ""}
     <p class="about">
       ${adm
-        ? "Le calage, la carte et les exports ne sont visibles que depuis un compte administrateur. Les guides n'ont accès qu'à l'affichage."
-        : "Pour changer la carte, le calage ou exporter les relevés, passez par un compte administrateur de la réserve."}
+        ? "Le partage et les exports ne sont visibles que depuis un compte administrateur. Les guides n'ont accès qu'à l'affichage."
+        : "Pour exporter les relevés, passez par un compte administrateur de la réserve."}
+      ${RES.info ? "<br><br>Carte : limite de Rietspruit et routes de Leadwood, Bloubank et Khaya Ndlovu." : ""}
     </p>`;
 
+  const sf = $("segFond");
+  [["sat","Satellite"],["plan","Plan des routes"]].forEach(([id, nom]) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.textContent = nom;
+    btn.setAttribute("aria-pressed", String(prefs.fond === id));
+    btn.addEventListener("click", () => { setFond(id); openSettings(); });
+    sf.appendChild(btn);
+  });
   const st = $("segTheme");
   [["auto","Automatique"],["light","Clair"],["dark","Sombre"]].forEach(([id, nom]) => {
     const btn = document.createElement("button");
     btn.type = "button"; btn.textContent = nom;
     btn.setAttribute("aria-pressed", String((prefs.theme || "auto") === id));
-    btn.addEventListener("click", () => { prefs.theme = id; lsSet(K_PREFS, prefs); applyTheme(); openSettings(); });
+    btn.addEventListener("click", () => { prefs.theme = id; lsSet(K_PREFS, prefs); applyTheme(); drawReserve(); openSettings(); });
     st.appendChild(btn);
   });
 
@@ -1504,16 +1161,8 @@ function openSettings() {
   if (!adm) return;                       // le reste n'existe que pour un administrateur
 
   $("goSync").addEventListener("click", openSync);
-  $("swapMap").addEventListener("click", () => $("pdfSwap").click());
-  const ub = $("useBundled");
-  if (ub) ub.addEventListener("click", async () => {
-    await idbDel("map").catch(() => {});
-    toast("Retour à la carte du dépôt…");
-    setTimeout(() => location.reload(), 700);
-  });
-  $("editB").addEventListener("click", editBounds);
   $("expJson").addEventListener("click", () => dl(`signalements-${stamp()}.json`, "application/json",
-    JSON.stringify({ app:"leadwood-tracker", version:1, bounds:b(), exported:new Date().toISOString(), sightings }, null, 2)));
+    JSON.stringify({ app:"leadwood-tracker", version:2, exported:new Date().toISOString(), sightings }, null, 2)));
   $("expCsv").addEventListener("click", () => {
     const esc2 = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
     const rows = sightings.map(s => [s.ts, (A[s.animal]||A.autre).nom, s.lat, s.lng, s.acc == null ? "" : s.acc].map(esc2).join(";"));
@@ -1550,63 +1199,6 @@ function openSettings() {
     toast("Tous les signalements ont été supprimés.");
   });
 }
-
-function editBounds() {
-  const B = b();
-  sheetMode = "bounds";
-  openSheet("Coins de la carte", "");
-  $("sheetBody").innerHTML = `
-    <div class="field">
-      <div class="bounds">
-        <div><label for="eN">Nord (lat. max)</label><input id="eN" type="text" inputmode="decimal" value="${B.maxLat}"></div>
-        <div><label for="eS">Sud (lat. min)</label><input id="eS" type="text" inputmode="decimal" value="${B.minLat}"></div>
-        <div><label for="eW">Ouest (long. min)</label><input id="eW" type="text" inputmode="decimal" value="${B.minLng}"></div>
-        <div><label for="eE">Est (long. max)</label><input id="eE" type="text" inputmode="decimal" value="${B.maxLng}"></div>
-      </div>
-      <div class="check" id="eAspect" hidden></div>
-      <p class="about">Les signalements déjà enregistrés gardent leurs coordonnées GPS ; seule leur position sur l'image change.</p>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn-ghost" id="bCancel" style="flex:0 0 auto">Annuler</button>
-      <button class="btn" id="bSave">Enregistrer</button>
-    </div>`;
-  const lire = () => {
-    const n = (id) => parseFloat(String($(id).value).replace(",", "."));
-    const v = { maxLat:n("eN"), minLat:n("eS"), minLng:n("eW"), maxLng:n("eE") };
-    return Object.values(v).some(x => !isFinite(x)) || v.maxLat <= v.minLat || v.maxLng <= v.minLng
-      ? null : v;
-  };
-  const rafraichir = () => paintAspect($("eAspect"), lire());
-  ["eN","eS","eW","eE"].forEach(id => $(id).addEventListener("input", rafraichir));
-  rafraichir();
-
-  $("bCancel").addEventListener("click", openSettings);
-  $("bSave").addEventListener("click", () => {
-    const n = (id) => parseFloat(String($(id).value).replace(",", "."));
-    const v = { maxLat:n("eN"), minLat:n("eS"), minLng:n("eW"), maxLng:n("eE") };
-    if (Object.values(v).some(x => !isFinite(x)) || v.maxLat <= v.minLat || v.maxLng <= v.minLng) {
-      toast("Valeurs incohérentes."); return;
-    }
-    prefs.bounds = v; lsSet(K_PREFS, prefs);
-    drawOverlay(); drawScale(); openSettings(); toast("Calage mis à jour.");
-  });
-}
-
-$("pdfSwap").addEventListener("change", async (e) => {
-  const f = e.target.files && e.target.files[0];
-  e.target.value = "";
-  if (!f) return;
-  try {
-    const buf = await f.arrayBuffer();
-    await idbPut("map", buf);
-    S.mapSource = "import";
-    closeSheet();
-    $("loading").hidden = false;
-    await renderPdf(buf);
-    fit();
-    toast("Nouvelle carte chargée.");
-  } catch (err) { $("loading").hidden = true; toast("Ce PDF n'a pas pu être chargé."); }
-});
 
 $("importInput").addEventListener("change", (e) => {
   const f = e.target.files && e.target.files[0];
@@ -2006,7 +1598,7 @@ function needLogin() {
       endLogin(true);
       toast("Connecté — " + (myName() || ""));
       setSync(); startSync();
-      loadMapAfterLogin();
+      enterMap();
     } catch (e) {
       $("loginErr").textContent = e.message;
       $("loginErr").hidden = false;
@@ -2230,7 +1822,6 @@ function applyTheme() {
 
 /* -------------------------------- Boot ------------------------------ */
 applyTheme();
-fillBounds();
 applyConfigLink();      // lien « #c=… » envoyé par un autre véhicule
 applyPreset();          // projet Supabase déclaré dans config.js
 updateCount();
@@ -2242,34 +1833,10 @@ setInterval(() => { if (S.rendered) { drawOverlay(); updateCount(); } }, 60000);
 
 (async function boot() {
   await gate();
-  // Comptes exigés par le serveur : on se connecte avant de chercher la
-  // carte, qui vit elle aussi derrière l'authentification.
+  // Comptes exigés par le serveur : pas de carte avant la connexion.
   if (syncOn() && authRequired() && !loggedIn()) await waitLogin();
 
-  // Ordre de priorité : la carte officielle de l'équipe (Supabase) passe
-  // avant tout. Un import manuel ne sert qu'en l'absence de partage, et ne
-  // doit jamais masquer la carte que tout le monde utilise.
-  let buf = null;
-  if (syncOn()) {
-    buf = await fetchStorageMap();
-    if (buf) { S.mapSource = "supabase"; idbDel("map").catch(() => {}); }
-  }
-  if (!buf) {
-    try { buf = await idbGet("map"); } catch (e) {}
-    if (buf) S.mapSource = "import";
-  }
-  if (!buf) {
-    buf = await fetchBundledMap();
-    if (buf) S.mapSource = "depot";
-  }
-  mapStatus("");
-  if (buf) await enterMap(buf);
-  else {
-    // Pas de carte et pas encore de partage : c'est le cas du téléphone
-    // d'un guide qu'on vient d'équiper. On lui dit où aller.
-    if (!syncOn() && !S.mapErr) S.mapErr = "nosync";
-    explainNoMap();
-  }
+  enterMap();
 })();
 
 if ("serviceWorker" in navigator) {

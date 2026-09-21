@@ -1,36 +1,34 @@
 /* ------------------------------------------------------------------ *
  *  Leadwood Tracker — service worker
  *
- *  IMPORTANT : tous les chemins sont RELATIFS ("./"), car l'application
- *  est servie depuis un sous-dossier (github.io/leadwood-tracker/).
- *  Un chemin absolu ("/index.html") pointerait vers la racine du domaine,
- *  addAll() échouerait et l'installation entière serait annulée.
+ *  Tous les chemins sont RELATIFS ("./") : l'application peut être
+ *  servie depuis un sous-dossier.
  * ------------------------------------------------------------------ */
-const VERSION = "v18";
+const VERSION = "v19";
 const CACHE   = "leadwood-" + VERSION;
+// Tuiles satellite : cache séparé, conservé d'une version à l'autre (sinon
+// chaque mise à jour de l'app effacerait les zones déjà téléchargées).
+const TUILES  = "leadwood-tuiles";
+const MAX_TUILES = 4000;              // ~60 à 80 Mo au maximum
 
 const PRECACHE = [
   "./",
   "./index.html",
   "./manifest.json",
   "./config.js",
+  "./reserve.js",
+  "./leaflet.js",
+  "./leaflet.css",
   "./icon-192.png",
-  "./icon-512.png",
-  "./pdf.min.js",
-  "./pdf.worker.min.js",
-  // Carte de la réserve livrée avec l'app. Absente, elle est simplement
-  // ignorée (chaque appareil importera alors sa carte à la main).
-  // Après avoir publié une nouvelle carte, incrémenter VERSION ci-dessus
-  // pour que les appareils déjà installés la récupèrent.
-  "./carte.pdf"
+  "./icon-512.png"
 ];
 
 /* ------------------------------ Install ---------------------------- */
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    // addAll() est tout-ou-rien : on ajoute fichier par fichier pour qu'une
-    // ressource manquante ne fasse pas échouer l'installation complète.
+    // Fichier par fichier : une ressource manquante ne doit pas faire
+    // échouer toute l'installation.
     await Promise.allSettled(PRECACHE.map(u => cache.add(new Request(u, { cache: "reload" }))));
     await self.skipWaiting();
   })());
@@ -40,10 +38,40 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter(n => n !== CACHE).map(n => caches.delete(n)));
+    // Les anciennes versions partent, avec l'ancienne carte PDF qu'elles contenaient.
+    await Promise.all(names.filter(n => n !== CACHE && n !== TUILES).map(n => caches.delete(n)));
     await self.clients.claim();
   })());
 });
+
+/* -------------------------------- Outils --------------------------- */
+// Réseau d'abord, mais pas plus de 4 s : en brousse, une connexion faible
+// peut laisser une requête pendre une minute. Au-delà, on sert le cache.
+async function reseauDabord(req, cle) {
+  const cache = await caches.open(CACHE);
+  const net = fetch(req, { cache: "no-store" }).then(res => {
+    if (res.ok) cache.put(cle || req, res.clone());
+    return res;
+  });
+  const enCache = await cache.match(cle || req);
+  if (!enCache) return net.catch(() => new Response("", { status: 504 }));
+  const delai = new Promise(r => setTimeout(() => r(null), 4000));
+  try {
+    const res = await Promise.race([net, delai]);
+    return res || enCache;
+  } catch (e) {
+    return enCache;
+  }
+}
+
+let ajouts = 0;
+async function rogner() {
+  const c = await caches.open(TUILES);
+  const cles = await c.keys();
+  if (cles.length <= MAX_TUILES) return;
+  // Les clés sont dans l'ordre d'insertion : on retire les plus anciennes.
+  await Promise.all(cles.slice(0, cles.length - MAX_TUILES).map(k => c.delete(k)));
+}
 
 /* -------------------------------- Fetch ---------------------------- */
 self.addEventListener("fetch", (event) => {
@@ -51,51 +79,47 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // La page elle-même : réseau d'abord, cache en secours.
-  // (sinon une mise à jour publiée sur GitHub n'atteint jamais l'appareil)
+  // La page elle-même : sinon une mise à jour publiée n'atteint jamais l'appareil.
   if (req.mode === "navigate") {
+    event.respondWith(reseauDabord(req, "./index.html"));
+    return;
+  }
+
+  // config.js (véhicules, mot de passe) et reserve.js (tracés) : toujours
+  // la dernière version publiée quand le réseau le permet.
+  if (url.origin === self.location.origin && /\/(config|reserve)\.js$/.test(url.pathname)) {
+    event.respondWith(reseauDabord(req));
+    return;
+  }
+
+  // Tuiles satellite : cache d'abord, pour le hors-ligne.
+  if (url.hostname === "server.arcgisonline.com") {
     event.respondWith((async () => {
+      const c = await caches.open(TUILES);
+      const hit = await c.match(req);
+      if (hit) return hit;
       try {
-        const fresh = await fetch(req);
-        const cache = await caches.open(CACHE);
-        cache.put("./index.html", fresh.clone());
-        return fresh;
+        const res = await fetch(req);
+        if (res.ok) {
+          c.put(req, res.clone());
+          if (++ajouts % 100 === 0) rogner();
+        }
+        return res;
       } catch (e) {
-        return (await caches.match("./index.html")) || Response.error();
+        return new Response("", { status: 504, statusText: "Hors ligne" });
       }
     })());
     return;
   }
 
-  // config.js : réseau d'abord. C'est là que vivent la liste des véhicules
-  // et le mot de passe d'ouverture ; servi depuis le cache, un véhicule
-  // ajouté ou un mot de passe changé n'atteindrait jamais les téléphones.
-  if (url.origin === self.location.origin && url.pathname.endsWith("/config.js")) {
-    event.respondWith((async () => {
-      try {
-        const fresh = await fetch(req, { cache: "no-store" });
-        if (fresh.ok) (await caches.open(CACHE)).put(req, fresh.clone());
-        return fresh;
-      } catch (e) {
-        return (await caches.match(req)) || new Response("", { status: 504 });
-      }
-    })());
-    return;
-  }
-
-  // Le reste (pdf.js, icônes, polices) : cache d'abord.
+  // Le reste (Leaflet, icônes, polices) : cache d'abord.
   event.respondWith((async () => {
     const hit = await caches.match(req);
     if (hit) return hit;
     try {
       const res = await fetch(req);
       if (res && (res.ok || res.type === "opaque")) {
-        // On ne met en cache que nos fichiers et les polices Google.
-        // Nos fichiers, les polices Google, et pdf.js si l'on est passé
-        // par le repli CDN (pdf.min.js absent du serveur).
-        if (url.origin === self.location.origin
-            || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)
-            || url.hostname === "cdnjs.cloudflare.com") {
+        if (url.origin === self.location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) {
           const cache = await caches.open(CACHE);
           cache.put(req, res.clone());
         }
